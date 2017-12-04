@@ -49,7 +49,7 @@ def simulate():
 
 print('########')
 optimize(r_init, charge)
-plt.xlabel('Iteration')
+plt.xlabel('Step')
 plt.ylabel('Energy')
 plt.plot(iX, eY, 'k')
 plt.show()
