@@ -50,7 +50,6 @@ class Optimizer(Actor):
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to optimize"""
-
         pass
 
     def __check(self):
@@ -58,10 +57,7 @@ class Optimizer(Actor):
 
     def __gradient_descent(self):
         """Proposes the new states"""
-
         pass
-
-    pass
 
 
 class Simulator(Actor):

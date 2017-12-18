@@ -13,7 +13,8 @@ class System:
         return self.__systemInfo
 
     def state(self):
-        """GIves the current dynamic information about the system"""
+        """Gives the current dynamic information about the system"""
+        pass
 
     def states(self):
         """Gives all the dynamic information about the system"""
@@ -59,13 +60,11 @@ class SystemState:
         self.__electrostatics = electrostatics
         self.__neighbours = None  # init the neighbours - don't know yet how
 
-    @property
     def positions(self):
         """Returns the current particle positions
         SystemState.positions.shape = (num_particles, num_dimensions)"""
         return self.__positions
 
-    @property
     def neighbours(self):
         """Returns the current neighbours list"""
         return self.__neighbours
@@ -80,19 +79,22 @@ class Electrostatic:
     """
     def __init__(self):
         # think
+        self.__potential = None
+        self.__energy = None
+        self.__forces = None
         pass
 
     @property
     def potential(self):
-        pass
+        return self.__potential
 
     @property
     def energy(self):
-        pass
+        return self.__energy
 
     @property
     def forces(self):
-        pass
+        return self.__forces
 
 
 class Error(Exception):
