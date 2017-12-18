@@ -43,10 +43,7 @@ class Optimizer(Actor):
 
     def __propose(self):
         """Propose the next state"""
-        last_state = self.__system.states[-1].positions
-        next_state = last_state + self.__system.electrostatics.forces + scipy.stats.multivariate_normal(
-            numpy.zeros(last_state.size), numpy.eye(last_state.shape[1])).rvs(1)
-        return next_state
+        pass
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to optimize"""
