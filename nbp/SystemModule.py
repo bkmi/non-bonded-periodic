@@ -26,15 +26,13 @@ class SystemInfo:
 
     __box_dim: an array 1, 2 or 3 dimensional, each cell is a dimension of the box containing the system [W, L, H]
     __particle_info:
-    __sigma: an integer or a dictionary containing lj-sigma values for all particle types in the system
-    __epsilon: an integer or a dictionary containing lj-epsilon values for all particle types in the system
+    __sigma:
     __cutoff_radius: the radius chosen to do the cutoff
     """
-    def __init__(self, box, particles, sigma, epsilon):
+    def __init__(self, box, particles, sigma):
         self.__box_dim = box
         self.__particle_info = particles
         self.__sigma = sigma
-        self.__epsilon = epsilon
         self.__cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
 
     def box_dim(self):
@@ -60,22 +58,16 @@ class SystemState:
     def __init__(self, positions, electrostatics):
         self.__positions = positions
         self.__electrostatics = electrostatics
-        self.__neighbours = None  # lazy instantiation (see below)
+        self.__neighbours = None  # init the neighbours - don't know yet how
 
     def positions(self):
         """Returns the current particle positions
         SystemState.positions.shape = (num_particles, num_dimensions)"""
         return self.__positions
 
-    @property # just a suggestion ^^
     def neighbours(self):
         """Returns the current neighbours list"""
-        if not self.__neighbours:   # if it hasn't been calculated yet
-            # method for calculating the neighbours goes here
-            self.__neighbours = []  # Save the calculated list
-            return self.__neighbours
-        else:   # if it has been calculated and saved
-            return self.__neighbours
+        return self.__neighbours
 
 
 class Electrostatic:
@@ -85,7 +77,8 @@ class Electrostatic:
     __potentials:
     __energies:
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
+        # think
         self.__potential = None
         self.__energy = None
         self.__forces = None
