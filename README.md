@@ -8,7 +8,7 @@ https://go.gliffy.com/go/share/s10vtlu2tep99qk28xim
 Positions of multiple particles are organized: (particle (row), dimension (columns))
 
 ### Authors:  
-Alexey,
+Alexy,
 Ben,
 Chris,
 Ludovica,
