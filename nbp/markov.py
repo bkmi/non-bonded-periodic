@@ -1,5 +1,4 @@
-import numpy
-import scipy.stats
+import numpy as np
 
 
 class MCMC:
