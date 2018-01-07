@@ -1,11 +1,12 @@
 import numpy as np
+import scipy as sp
 
 
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
     def __init__(self, characteristic_length, sigma, particle_charges, positions):
-        self.__systemInfo = SystemInfo(characteristic_length, sigma, particle_charges)
-        self.__systemStates = [SystemState(positions)]
+        self.__systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, self)
+        self.__systemStates = [SystemState(positions, self)]
 
     def update_state(self, new_state):
         """Appends the new state to the systemStates list"""
@@ -33,12 +34,16 @@ class SystemInfo:
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
-    def __init__(self, characteristic_length, sigma, particle_charges):
+    def __init__(self, characteristic_length, sigma, particle_charges, system):
         self.__sigma = sigma
         self.__cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
         self.__epsilon0 = 1
         self.__particle_charges = particle_charges
         self.__char_length = characteristic_length
+        self.__system = system
+
+    def system(self):
+        return self.__system
 
     def char_length(self):
         """Return the characteristic length aka L"""
@@ -74,10 +79,13 @@ class SystemState:
     electrostatics: the forces, the energies and the potentials of the particles
     neighbours: the current status of the neighbours
     """
-    def __init__(self, positions):
+    def __init__(self, positions, system):
         self.__positions = positions
-        self.__electrostatics = Electrostatic()
         self.__neighbours = None  # init the neighbours - don't know yet how
+        self.__system = system
+
+    def system(self):
+        return self.__system
 
     def positions(self):
         """Returns the current particle positions
@@ -88,36 +96,36 @@ class SystemState:
         """Returns the current neighbours list"""
         return self.__neighbours
 
-    def electrostatics(self):
-        """Return the current state of the electrostatics"""
-        return self.__electrostatics
-
-
-class Electrostatic:
-    """Represent the electrostatics information of the system
-
-    __forces:
-    __potentials:
-    __energies:
-    """
-    def __init__(self):
-        # think
-        self.__potential = None
-        self.__energy = None
-        self.__forces = None
-        pass
-
-    @property
     def potential(self):
-        return self.__potential
+        return None
 
-    @property
     def energy(self):
-        return self.__energy
+        V = self.system().info().volume()
+        epsilon0 = self.system().info().epsilon0()
+        charges = self.system().info().particle_charges()
+        sigma = self.system().info().sigma()
+        L = self.system().info().char_length()
 
-    @property
+        pos = self.positions()
+
+        # start with one box
+        charge_matrix = np.outer(charges, charges.T)
+        np.fill_diagonal(charge_matrix, 0)
+        dist_matrix = np.fromfunction(lambda i, j: np.linalg.norm(pos[i] - pos[j]), (pos.shape[1], pos.shape[1]), dtype=int)
+        same_box = np.sum(charge_matrix/dist_matrix * sp.special.erf(dist_matrix/(np.sqrt(2)*sigma)))
+        # now all other boxes
+        charge_matrix = np.outer(charges, charges.T)
+        other_boxes = None  # TODO
+        # together
+        energy_short = (8*np.pi*epsilon0)**(-1)*(same_box + other_boxes)
+
+        energy_long = (V*epsilon0)**(-1)*np.sum(None)  # TODO
+
+        energy_self = (2*epsilon0*sigma*(2*np.pi)**(3/2))**(-1)*np.sum(charges**2)
+        return energy_short + energy_long - energy_self
+
     def forces(self):
-        return self.__forces
+        return None
 
 
 class Error(Exception):
