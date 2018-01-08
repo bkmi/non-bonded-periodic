@@ -1,4 +1,7 @@
 import numpy as np
+import scipy as sp
+import scipy.stats
+from .sysmodule import SystemState
 
 
 class MCMC:
@@ -38,25 +41,31 @@ class Optimizer(Actor):
     def __init__(self, system, epsilon, sigma, n_steps=100, dt=0.001, length=1000):
         super().__init__(system, epsilon, sigma, n_steps, dt, length)
         self.__temperature = 0
-        pass
 
-    def __propose(self):
-        """Propose the next state"""
-        last_state = self.__system.states[-1].positions
-        next_state = last_state + self.__system.electrostatics.forces + scipy.stats.multivariate_normal(
-            numpy.zeros(last_state.size), numpy.eye(last_state.shape[1])).rvs(1)
-        return next_state
+    def __propose(self, cov):
+        """Propose the next state, moves a single particle randomly with a 3d gaussian."""
+        positions = self.__system.state().positions()
+        particle = np.random.choice(positions.shape[0])
+        proposal_positions = positions
+        proposal_positions[particle] = sp.stats.multivariate_normal(np.zeros(3), cov * np.eye(3)).rvs()
+        self.__proposal = SystemState(proposal_positions)
+
+    def __check(self):
+        position_energy = self.__system.state().energy()
+        proposal_energy = self.__proposal.energy()
+        if proposal_energy <= position_energy:
+            return True
+        else:
+            return False
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to optimize"""
-        pass
-
-    def __check(self):
-        pass
-
-    def __gradient_descent(self):
-        """Proposes the new states"""
-        pass
+        cov = self.__system.info().char_length()
+        self.__propose(cov)
+        if self.__check():
+            return self.__proposal
+        else:
+            return self.__system().state()
 
 
 class Simulator(Actor):
