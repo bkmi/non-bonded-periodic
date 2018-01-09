@@ -24,6 +24,7 @@ class Neighbours:
         """
         # define skin radius by using sigma.
         # The 3 is just an option that mostly works (?)
+        # check sigma!
         __skin_radius = self.SystemInfo.sigma() * 3
         __box_length = self.SystemInfo.char_length()
 
