@@ -5,26 +5,29 @@ from .sysmodule import SystemState
 
 
 class MCMC:
-    """An class which applies actor to a System instance and updates it to the next step in MCMC."""
-    def __init__(self, system, actor):
+    """An class which applies actor to a System instance and doing MCMC for a set of steps."""
+    def __init__(self, system):
         self.__system = system
-        self.__actor = actor
 
-    def propose_next_state(self):
-        """Propose the next state by calling the actor"""
-        pass
+    def optimize(self, steps):
+        """Optimize from the last system state."""
+        actor = Optimizer(self.__system)
+        for i in range(steps):
+            self.__system.update_state(actor.act())
+        return self.__system
+
+    def simulate(self, steps, temperature):
+        """Simulate from the last system state."""
+        actor = Simulator(self.__system)
+        for i in range(steps):
+            self.__system.update_state(actor.act(temperature))
+        return self.__system
 
 
 class Actor:
     """Methods wrapper for the proposal and acceptance steps in MCMC."""
-    def __init__(self, system, epsilon, sigma, n_steps=100, dt=0.001, length=1000):
+    def __init__(self, system):
         self.__system = system
-        self.__epsilon = epsilon
-        self.__sigma = sigma
-        self.__n_steps = n_steps
-        self.__dt = dt
-        self.__length = length
-        self.__previous_electrostatics = None
 
     def act(self, temperature):
         """Interface for the function that is called by the MCMC to optimize or
@@ -38,9 +41,8 @@ class Actor:
 
 class Optimizer(Actor):
     """The class that optimizes the system to temperature 0"""
-    def __init__(self, system, epsilon, sigma, n_steps=100, dt=0.001, length=1000):
-        super().__init__(system, epsilon, sigma, n_steps, dt, length)
-        self.__temperature = 0
+    def __init__(self, system):
+        super().__init__(system)
 
     def __propose(self, cov):
         """Propose the next state, moves a single particle randomly with a 3d gaussian."""
@@ -58,7 +60,7 @@ class Optimizer(Actor):
         else:
             return False
 
-    def act(self, temperature):
+    def act(self, temperature=0):
         """Overriding of the function act of the Actor in order for it to optimize"""
         cov = self.__system.info().char_length()
         self.__propose(cov)
@@ -70,16 +72,12 @@ class Optimizer(Actor):
 
 class Simulator(Actor):
     """The class that simulates."""
-    def __init__(self, system, epsilon, sigma, n_steps=100, dt=0.001, length=1000):
-        super().__init__(system, epsilon, sigma, n_steps, dt, length)
+    def __init__(self, system):
+        super().__init__(system)
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to simulate"""
-        pass
+        return None
 
     def __check(self):
-        pass
-
-    def __metropolis(self):
-        """Proposes the new states"""
         pass
