@@ -9,11 +9,17 @@ class MCMC:
     def __init__(self, system):
         self.__system = system
 
-    def optimize(self, steps):
+    def optimize(self, max_steps, d_energy_tol=1e-6):
         """Optimize from the last system state."""
         actor = Optimizer(self.__system)
-        for i in range(steps):
-            self.__system.update_state(actor.act())
+        old_energy = 0
+        for i in range(max_steps):
+            new_state, new_energy = actor.act()
+            self.__system.update_state(new_state)
+            if abs(new_energy - old_energy) < d_energy_tol:
+                break
+            else:
+                old_energy = new_energy
         return self.__system
 
     def simulate(self, steps, temperature):
@@ -24,38 +30,26 @@ class MCMC:
         return self.__system
 
 
-class Actor:
-    """Methods wrapper for the proposal and acceptance steps in MCMC."""
-    def __init__(self, system):
-        self.__system = system
-
-    def act(self, temperature):
-        """Interface for the function that is called by the MCMC to optimize or
-        simulate, accordingly to the phase is it in"""
-        raise NotImplementedError('Actor is merely an interface, choose an implementation of Actor.')
-
-    def __check(self):
-        """Checks if the new proposed system is to be accepted"""
-        raise NotImplementedError('Actor is merely an interface, choose an implementation of Actor.')
-
-
-class Optimizer(Actor):
+class Optimizer:
     """The class that optimizes the system to temperature 0"""
     def __init__(self, system):
-        super().__init__(system)
+        self.__system = system
+        self.__proposal = None
 
     def __propose(self, cov):
-        """Propose the next state, moves a single particle randomly with a 3d gaussian."""
+        """Propose the next state, moves a single particle randomly with a 3d gaussian.
+
+        returns proposal state, proposal_energy"""
         positions = self.__system.state().positions()
         particle = np.random.choice(positions.shape[0])
         proposal_positions = positions
         proposal_positions[particle] = sp.stats.multivariate_normal(np.zeros(3), cov * np.eye(3)).rvs()
-        self.__proposal = SystemState(proposal_positions)
+        proposal_state = SystemState(proposal_positions)
+        return proposal_state, proposal_state.energy()
 
-    def __check(self):
-        position_energy = self.__system.state().energy()
-        proposal_energy = self.__proposal.energy()
-        if proposal_energy <= position_energy:
+    @staticmethod
+    def __check(orig_energy, proposal_energy):
+        if proposal_energy <= orig_energy:
             return True
         else:
             return False
@@ -63,17 +57,18 @@ class Optimizer(Actor):
     def act(self, temperature=0):
         """Overriding of the function act of the Actor in order for it to optimize"""
         cov = self.__system.info().char_length()
-        self.__propose(cov)
-        if self.__check():
-            return self.__proposal
+        orig_energy = self.__system.energy()
+        self.__proposal, proposal_energy = self.__propose(cov)
+        if self.__check(orig_energy, proposal_energy):
+            return self.__proposal, proposal_energy
         else:
-            return self.__system().state()
+            return self.__system().state(), orig_energy
 
 
-class Simulator(Actor):
+class Simulator:
     """The class that simulates."""
     def __init__(self, system):
-        super().__init__(system)
+        self.__system = system
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to simulate"""
