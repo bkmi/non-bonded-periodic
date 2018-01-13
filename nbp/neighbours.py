@@ -1,6 +1,6 @@
 import numpy as np
 import math
-
+import collections
 
 class Neighbours:
 
@@ -102,8 +102,9 @@ class Neighbours:
     def get_neighbours(self, particle_pos):
         """
         Calculate which neighbours are around the particle.
+        Calculates the distance between a particle and its neighbours
         :param particle_pos: 3d coordinates of single particle
-        :return: array of neighbour particles
+        :return: array of neighbour particles and array with distances
         """
         neighbours = []
         neighbour_subcells = self.__get_neighbours_subcells(particle_pos)
@@ -111,38 +112,37 @@ class Neighbours:
         #print("neighbours_subcells:", neighbour_subcells)
 
         #print("\n start_array:", start_array, "\n shape:", start_array.shape)
-        new_index = 0
         for i in np.nditer(neighbour_subcells):
             index = start_array[i[0]]
             while index != 0:
                 neighbours.append(index)
                 index = self.__neighbour_list[index]
 
-        return neighbours
-
-    def get_neighbours_distance(self, particle_pos):
-        """
-        Calculates the distance between a particle and its neighbours.
-        13.01 does not check the boundary conditions
-        :param particle_pos: 3d coordinates of single particle
-        :return: array with distance between particles. 
-        """
         positions = self.SystemState.positions()
-        neighbours = self.get_neighbours(particle_pos)
         nb_length = np.shape(neighbours)[0]
-        print(neighbours[0])
-        neighbours_distance = np.zeros(nb_length)
 
+        neighbours_distance = []
+        new_neighbours = []
         for i in range(nb_length):
             index = neighbours[i]
             x_distance = particle_pos[0] - positions[index][0]
             y_distance = particle_pos[1] - positions[index][1]
             z_distance = particle_pos[2] - positions[index][2]
 
-            # distance
-            neighbours_distance[i] = np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
+            distance = np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
+            # distance not further than cutoff radius:
+            if distance <= self.SystemInfo.cutoff():
+                neighbours_distance.append(distance)
+                print("distance:", distance)
+                new_neighbours.append(index)
+                print("index: ", index)
 
-        return neighbours_distance
+        neighbours = new_neighbours
+        print("neighbours:", neighbours)
+        Result = collections.namedtuple("Neighbour_result", ["nb_pos", "nb_dist"])
+        r = Result(nb_pos=neighbours, nb_dist=neighbours_distance)
+        print(r)
+        return r
 
     def __get_neighbours_subcells(self, particle_pos):
         """

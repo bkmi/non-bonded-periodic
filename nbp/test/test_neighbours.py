@@ -13,10 +13,9 @@ def test_neighbours():
     system_info = SystemInfo(6, 0.2, charges)
     system_state = SystemState(positions)
     neighbours = Neighbours(system_info, system_state)
-    nb_list = neighbours.get_neighbours(positions[78])
-    nb_dist = neighbours.get_neighbours_distance(positions[78])
+    neighbours_list = neighbours.get_neighbours(positions[78])
 
-    return nb_list, nb_dist
+    return neighbours_list
 
 
 def show_frame(coordinates):
@@ -30,9 +29,9 @@ def show_frame(coordinates):
     plt.show()
 
 
-nb_list = test_neighbours()[0]
-nb_dist = test_neighbours()[1]
+nb_result = test_neighbours()
 
-print("result:", nb_list)
-print("result distances:", nb_dist)
+print("position result:", nb_result.nb_pos)
+print("distance result:",  nb_result.nb_dist)
+
 #show_frame(coord)
