@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as sp
+from scipy.special import erfc
 
 
 class System:
@@ -34,13 +35,14 @@ class SystemInfo:
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
-    def __init__(self, characteristic_length, sigma, particle_charges, system):
+    def __init__(self, characteristic_length, sigma, particle_charges, system, periods):
         self.__sigma = sigma
         self.__cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
         self.__epsilon0 = 1
         self.__particle_charges = particle_charges
         self.__char_length = characteristic_length
         self.__system = system
+        self.__periods = periods
 
     def system(self):
         return self.__system
@@ -70,6 +72,9 @@ class SystemInfo:
 
     def particle_charges(self):
         return self.__particle_charges
+
+    def periods(self):
+        return self.__periods
 
 
 class SystemState:
@@ -105,21 +110,31 @@ class SystemState:
         charges = self.system().info().particle_charges()
         sigma = self.system().info().sigma()
         L = self.system().info().char_length()
-
         pos = self.positions()
+        n = self.system().info().periods()
 
         # start with one box
-        charge_matrix = np.outer(charges, charges.T)
-        np.fill_diagonal(charge_matrix, 0)
-        dist_matrix = np.fromfunction(lambda i, j: np.linalg.norm(pos[i] - pos[j]), (pos.shape[1], pos.shape[1]), dtype=int)
-        same_box = np.sum(charge_matrix/dist_matrix * sp.special.erf(dist_matrix/(np.sqrt(2)*sigma)))
+        # charge_matrix = np.outer(charges, charges.T)
+        # np.fill_diagonal(charge_matrix, 0)
+        # dist_matrix = np.fromfunction(lambda i, j: np.linalg.norm(pos[i] - pos[j]), (pos.shape[1], pos.shape[1]), dtype=int)
+        # same_box = np.sum(charge_matrix/dist_matrix * sp.special.erf(dist_matrix/(np.sqrt(2)*sigma)))
         # now all other boxes
-        charge_matrix = np.outer(charges, charges.T)
-        other_boxes = None  # TODO
-        # together
-        energy_short = (8*np.pi*epsilon0)**(-1)*(same_box + other_boxes)
+        # charge_matrix = np.outer(charges, charges.T)
+        # other_boxes = None  # TODO
 
-        energy_long = (V*epsilon0)**(-1)*np.sum(None)  # TODO
+        # making sum for short energy
+        shortsum = 0
+        for i in range(len(charges)):
+            for j in range(len(charges)):
+                shortsum += (charges[i]*charges[j]) / (pos[i]-pos[j] + n*L) * sp.special.erfc((np.linalg.norm(pos[i]-pos[j]) + n*L)/(np.sqrt(2)*sigma))
+
+        # making sum for long energy
+        longsum = 0
+        # ToDo
+
+        energy_short = 1/(8*np.pi*epsilon0)*shortsum
+
+        energy_long = 1/(V*epsilon0)*longsum
 
         energy_self = (2*epsilon0*sigma*(2*np.pi)**(3/2))**(-1)*np.sum(charges**2)
         return energy_short + energy_long - energy_self
