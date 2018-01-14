@@ -1,7 +1,9 @@
 import numpy as np
 import scipy as sp
 from scipy.special import erfc
-
+from nbp import neighbours as nei
+from scipy import exp, pi
+from numpy import dot, sqrt
 
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
@@ -86,7 +88,7 @@ class SystemState:
     """
     def __init__(self, positions, system):
         self.__positions = positions
-        self.__neighbours = None  # init the neighbours - don't know yet how
+        self.__neighbours = nei.Neighbours()
         self.__system = system
 
     def system(self):
@@ -98,8 +100,8 @@ class SystemState:
         return self.__positions
 
     def neighbours(self):
-        """Returns the current neighbours list"""
-        return self.__neighbours
+        neigh = self.__neighbours.get_neighbours(self.positions())
+        return neigh
 
     def potential(self):
         return None
@@ -112,6 +114,7 @@ class SystemState:
         L = self.system().info().char_length()
         pos = self.positions()
         n = self.system().info().periods()
+        nb = self.neighbours()
 
         # start with one box
         # charge_matrix = np.outer(charges, charges.T)
@@ -124,13 +127,30 @@ class SystemState:
 
         # making sum for short energy
         shortsum = 0
-        for i in range(len(charges)):
-            for j in range(len(charges)):
-                shortsum += (charges[i]*charges[j]) / (pos[i]-pos[j] + n*L) * sp.special.erfc((np.linalg.norm(pos[i]-pos[j]) + n*L)/(np.sqrt(2)*sigma))
+        for i in range(len(nb.nb_pos)):
+            for j in range(len(nb.nb_pos)):
+                if i != j:
+                    ri = pos[nb.nb_pos[i]]
+                    rj = pos[nb.nb_pos[j]]
+                    qi = charges[nb.nb_pos[i]]
+                    qj = charges[nb.nb_pos[j]]
+                    shortsum += (qi*qj) / (ri-rj + n*L) * sp.special.erfc((np.linalg.norm(ri-rj) + n*L)/(np.sqrt(2)*sigma))
 
         # making sum for long energy
         longsum = 0
-        # ToDo
+        structure_factor = 0
+        reci_cutoff = 100               # Maybe put into system?
+        for x in range(reci_cutoff):
+            for y in range(reci_cutoff):
+                for z in range(reci_cutoff):
+                    k = [x, y, z]
+                    k = [x * (2*pi / L) for x in k]
+                    k_length = sqrt(k[0]**2 + k[1]**2 + k[2]**2)
+                    for i in range(len(pos)):                      # ToDo In range of NOT neighbour
+                        q = charges[i]
+                        r = pos[i]
+                        structure_factor += q * exp(1j * dot(k, r))
+                    longsum += abs(structure_factor)**2 * exp(-sigma**2 * k_length**2 / 2) / k_length**2
 
         energy_short = 1/(8*np.pi*epsilon0)*shortsum
 
