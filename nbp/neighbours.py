@@ -3,7 +3,17 @@ import math
 import collections
 
 class Neighbours:
+    """
+    This class is used to evaluate the position of
+    particles to each others. The system must be big enough to
+    contain at least 3 subcells per row.
+    Private Functions:
+    __init__, __create_subcells, __create_neighbours, __find_subcell,
+    __get_neighbour_subcell, __3d_subcell_id, __cell_y, __cell_z
+    Public Functions:
+    update_neighbours, get_neighbours
 
+    """
     def __init__(self, system_info, system_state):
         """
         Instantiates a new Object of class Neighbours
@@ -20,8 +30,9 @@ class Neighbours:
 
     def __create_subcells(self):
         """
-        Calculate the length of the subcells based on the skin radius.
-        :return: Nothing?
+        Calculates the length of the subcells based on the skin radius.
+        This helps to avoid having to update every time.
+        :return: length of subcell
         """
         # define skin radius by using sigma.
         # The 3 is just an option that mostly works (?)
@@ -30,7 +41,8 @@ class Neighbours:
         # calculate subcell size.
         while __skin_radius < self.__box_length / self.__subcells_inrow:
             self.__subcells_inrow += 1
-        print("Number of subcells:", self.__subcells_inrow)
+
+        print("Number of subcells per row:", self.__subcells_inrow)
         subcell_length = self.__box_length / self.__subcells_inrow
 
         return subcell_length
@@ -43,27 +55,34 @@ class Neighbours:
         which belong to each box.
         :return: neighbour list
         """
+        # get number of particles in the system
         particle_number = self.SystemState.positions().shape[0]
+
         # create list (head) for starting index of subcell.
         # **3 because we have 3 dimensions for 2 it would be **2.
-        self.__start_index = [0] * (self.__subcells_inrow ** 3)
+        self.__start_index = np.zeros(self.__subcells_inrow**3)
+
         # create linked neighbour list
         self.__neighbour_list = [-1] * particle_number
-        # get positions
-        positions = self.SystemState.positions()
 
+        # get positions of all particles
+        positions = self.SystemState.positions()
+        # print("positions:", positions)
+        # Find list of particles each subcell contains
         for i in range(particle_number):
 
             subcell_id = self.__find_subcell(positions[i])
-            # print("position", i, ":", positions[i])
+
+            #print("This is i:", i)
+            #print("This is the subcell ID:", subcell_id)
             try:
-                self.__neighbour_list[i] = self.__start_index[subcell_id]
-                self.__start_index[subcell_id] = i
+                self.__neighbour_list[i] = int(self.__start_index[subcell_id])
+                self.__start_index[subcell_id] = int(i)
             except IndexError:
-                print("IndexError: Index out of range in start_index", subcell_id)
-
-        #print("neighbour list:", self.__neighbour_list)
-
+                pass
+                # print("IndexError: Index out of range in start_index", subcell_id)
+        #print("created neighbour List:", self.__neighbour_list,
+         #    "\n start_index:", self.__start_index)
         return self.__neighbour_list
 
     def __find_subcell(self, position):
@@ -75,6 +94,7 @@ class Neighbours:
         """
 
         subcell_id_3d = [0, 0, 0]
+        # calculate the subcell ID for each axis (x, y, z)
         for axis in range(3):
             try:
                 subcell_id_3d[axis] = math.floor(position[axis]
@@ -82,6 +102,7 @@ class Neighbours:
             except OverflowError:
                 pass
 
+        # Use 3d subcell ID to get the 1d ID
         if (subcell_id_3d[0] < 0 or subcell_id_3d[1] < 0
                 or subcell_id_3d[2] < 0):
             raise ValueError('subcell_id value is negative')
@@ -90,6 +111,7 @@ class Neighbours:
             subcell_id = subcell_id_3d[0] \
                          + (subcell_id_3d[1] * m) \
                          + (subcell_id_3d[2] * (m ** 2))
+
         return subcell_id
 
     def update_neighbours(self):
@@ -106,62 +128,90 @@ class Neighbours:
         :param particle_pos: 3d coordinates of single particle
         :return: array of neighbour particles and array with distances
         """
-        neighbours = []
+        positions = self.SystemState.positions()
+        neighbours = []           # neighbour positions
+        neighbours_distance = []  # distance of particle to each neighbour
+        new_neighbours = []       # only neighbours within cutoff radius
         neighbour_subcells = self.__get_neighbours_subcells(particle_pos)
+        # get starting positions for each subcell
         start_array = np.asarray(self.__start_index)
-        #print("neighbours_subcells:", neighbour_subcells)
 
-        #print("\n start_array:", start_array, "\n shape:", start_array.shape)
-        for i in np.nditer(neighbour_subcells):
-            index = start_array[i[0]]
+        # get all particles from the neighbour subcells
+        # np.nditer did not work for neighbour_subcells
+        # for i in np.nditer(neighbour_subcells):
+        # print("neighbour subcells:", neighbour_subcells)
+        for i in range(27):
+            i = neighbour_subcells[i]
+            # print("i in loop:" , i)
+            index = int(start_array[i])
+
             while index != 0:
                 neighbours.append(index)
-                index = self.__neighbour_list[index]
+                index = int(self.__neighbour_list[index])
 
-        positions = self.SystemState.positions()
         nb_length = np.shape(neighbours)[0]
-
-        neighbours_distance = []
-        new_neighbours = []
+        print("neighbour length:", nb_length)
+        recent_neighbours = []
+        # get distance from particle to neighbours
         for i in range(nb_length):
             index = neighbours[i]
             x_distance = particle_pos[0] - positions[index][0]
             y_distance = particle_pos[1] - positions[index][1]
             z_distance = particle_pos[2] - positions[index][2]
 
-            distance = np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
-            # distance not further than cutoff radius:
-            if distance <= self.SystemInfo.cutoff():
-                neighbours_distance.append(distance)
-                print("distance:", distance)
-                new_neighbours.append(index)
-                print("index: ", index)
+            # correct boundary subcells distance.
+            # If only 2 subcells this will be have to caught somewhere else.
+            # if self.__subcells_inrow is 2:
+            #    distance = np.sqrt(x_distance ** 2 + y_distance ** 2 + z_distance ** 2)
+            #    print("Distance:", distance)
+            #    if index not in recent_neighbours:
+            #        recent_neighbours.append(index)
+            #    else:
+            #        x_distance = self.__box_length - x_distance
+            #        y_distance = self.__box_length - y_distance
+            #        z_distance = self.__box_length - z_distance
+            # else:
 
+            l = 2*self.__subcell_length  # max possible distance
+            if x_distance > l:
+                x_distance = self.__box_length - x_distance
+            if y_distance > l:
+                y_distance = self.__box_length - y_distance
+            if z_distance > l:
+                z_distance = self.__box_length - z_distance
+
+
+            distance = np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
+            # print("distance: ", distance)
+            # distance no further than cutoff radius:
+            if 0 < distance <= self.SystemInfo.cutoff():
+                neighbours_distance.append(distance)
+                new_neighbours.append(index)
+
+        # overwrite neighbours with the correct ones.
         neighbours = new_neighbours
-        print("neighbours:", neighbours)
+
+        # Create namedtuple for easy access of output
         Result = collections.namedtuple("Neighbour_result", ["nb_pos", "nb_dist"])
         r = Result(nb_pos=neighbours, nb_dist=neighbours_distance)
-        print(r)
+
         return r
 
     def __get_neighbours_subcells(self, particle_pos):
         """
-        Issue: The particle counts itself so distances later should get rid of that!
-        Call neighbour list from Class Neighbours
+        Gets the subcell ID of the subcells which surround
+        the subcell of the particle.
+        To fulfill periodic boundary conditions, the subcell IDs
+        are first calculated in 3D and subcell IDs which are
+        out of bound are corrected.
         :param particle_pos: 3d position of single particle
         :return: neighbours
         """
 
         m = self.__subcells_inrow  # makes code easier to read
-        # get subcell id for surrounding subcells
-        # (including particle_subcell)
-        # find boundary boxes by using 3d coordinates
-
-        # initialize subcell ids with subcell of particle
+        # initialize 3d subcell IDs with subcell of the particle
         subcells_id_3d = np.zeros((27, 3))
         subcells_id_3d[:] = self.__3d_subcell_id(particle_pos)
-
-        #print("subcell_id_3d start:", subcells_id_3d[0])
 
         # First set of neighbour cells 0 to 8
         for cell in range(9):
@@ -169,7 +219,6 @@ class Neighbours:
             subcells_id_3d[cell][0] = math.floor((particle_pos[0]
                                                   - self.__subcell_length)
                                                  / self.__subcell_length)
-            #print("subcell_id_3d for cell", cell, ":", subcells_id_3d[cell], "\n")
 
         # cells 18 to 26
         for cell in range(18, 27):
@@ -183,13 +232,13 @@ class Neighbours:
             subcells_id_3d[cell][1] = self.__cell_y(1, particle_pos)
         for cell in [6, 7, 8, 15, 16, 17, 24, 25, 26]:
             subcells_id_3d[cell][1] = self.__cell_y(0, particle_pos)
-        #print("subcell_id_3d for cell:", subcells_id_3d)
         # z-coordinates:
         for cell in [0, 3, 6, 9, 12, 15, 18, 21, 24]:
             subcells_id_3d[cell][2] = self.__cell_z(1, particle_pos)
         for cell in [2, 5, 8, 11, 14, 17, 20, 23, 26]:
             subcells_id_3d[cell][2] = self.__cell_z(0, particle_pos)
-        #print("subcell_id_3d for cell:", subcells_id_3d)
+
+        # initialize neighbour subcells (3x3x3 cube)
         neighbour_subcells = [0] * 3 ** 3
 
         # transform 3d subcell ID to an integer
@@ -199,7 +248,7 @@ class Neighbours:
             for index in range(3):
                 if subcells_id_3d[cell][index] < 0:
                     subcells_id_3d[cell][index] = m - 1
-                if subcells_id_3d[cell][index] > self.__box_length:
+                if subcells_id_3d[cell][index] > m - 1:
                     subcells_id_3d[cell][index] = 0
 
             subcell_id = subcells_id_3d[cell][0] \
@@ -210,8 +259,8 @@ class Neighbours:
 
         return neighbour_subcells
 
-    #Following functions are for minor operations that occur several times.\n"
-    #Functions: __3d_subcell_id, __cell_y, __cell_z
+# Following functions are for minor operations that occur several times.\n"
+# Functions: __3d_subcell_id, __cell_y, __cell_z
 
     def __3d_subcell_id(self, particle_pos):
         """
@@ -235,7 +284,7 @@ class Neighbours:
         """
         if positive == 0:
             y_id = math.floor((particle_pos[1] + self.__subcell_length) / self.__subcell_length)
-        elif positive == 1:
+        else:
             y_id = math.floor((particle_pos[1] - self.__subcell_length) / self.__subcell_length)
         return y_id
 
@@ -249,6 +298,6 @@ class Neighbours:
         """
         if positive == 0:
             z_id = math.floor((particle_pos[2] + self.__subcell_length) / self.__subcell_length)
-        elif positive == 1:
+        else:
             z_id = math.floor((particle_pos[2] - self.__subcell_length) / self.__subcell_length)
         return z_id
