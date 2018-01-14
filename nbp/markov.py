@@ -11,10 +11,10 @@ class MCMC:
 
     def optimize(self, max_steps, d_energy_tol=1e-6):
         """Optimize from the last system state."""
-        actor = Optimizer(self.__system)
+        optimizer = Optimizer(self.__system)
         old_energy = 0
         for i in range(max_steps):
-            new_state, new_energy = actor.act()
+            new_state, new_energy = optimizer.act()
             self.__system.update_state(new_state)
             if abs(new_energy - old_energy) < d_energy_tol:
                 break
@@ -24,9 +24,9 @@ class MCMC:
 
     def simulate(self, steps, temperature):
         """Simulate from the last system state."""
-        actor = Simulator(self.__system)
+        simulator = Simulator(self.__system)
         for i in range(steps):
-            self.__system.update_state(actor.act(temperature))
+            self.__system.update_state(simulator.act(temperature))
         return self.__system
 
 

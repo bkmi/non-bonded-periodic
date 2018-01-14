@@ -1,5 +1,5 @@
-from sysmodule import SystemInfo, SystemState
-from neighbours import Neighbours
+from . import SystemInfo, SystemState
+from . import Neighbours
 import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
