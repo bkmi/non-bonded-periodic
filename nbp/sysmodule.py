@@ -1,4 +1,4 @@
-import numpy as np
+import nbp
 
 
 class System:
@@ -6,6 +6,7 @@ class System:
     def __init__(self, characteristic_length, sigma, particle_charges, positions):
         self.__systemInfo = SystemInfo(characteristic_length, sigma, particle_charges)
         self.__systemStates = [SystemState(positions)]
+        self.__mcmc = nbp.MCMC(self)
 
     def update_state(self, new_state):
         """Appends the new state to the systemStates list"""
@@ -22,6 +23,14 @@ class System:
     def states(self):
         """Gives all the dynamic information about the system"""
         return self.__systemStates
+
+    def optimize(self, max_steps, d_energy_tol=1e-6):
+        """Optimize the system to a lower energy level."""
+        self.__mcmc.optimize(max_steps, d_energy_tol=d_energy_tol)
+
+    def simulate(self, steps, temperature):
+        """Simulate the system at a particular temperature."""
+        self.__mcmc.simulate(steps, temperature)
 
 
 class SystemInfo:

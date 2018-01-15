@@ -1,19 +1,16 @@
-from sysmodule import SystemInfo, SystemState
-from neighbours import Neighbours
+import nbp
 import numpy as np
 
 
 def test_neighbours(positions, particle_number, char_length, sigma, x):
-
     charges = np.random.random_sample((particle_number, 1))
-
-    system_info = SystemInfo(char_length, sigma, charges)
-    system_state = SystemState(positions)
-
-    neighbours = Neighbours(system_info, system_state)
+    system_info = nbp.SystemInfo(char_length, sigma, charges)
+    system_state = nbp.SystemState(positions)
+    neighbours = nbp.Neighbours(system_info, system_state)
     neighbours_list = neighbours.get_neighbours(positions[x])
 
     return neighbours_list
+
 
 positions_set1 = 4 * np.random.random_sample((100, 3))
 nb_result = test_neighbours(positions_set1, len(positions_set1), 5, 0.5, 8)
