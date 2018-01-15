@@ -2,7 +2,7 @@ import nbp
 import numpy as np
 
 
-def test_print_and_look_for_neighbours():
+def dont_test_print_and_look_for_neighbours():
     def setup_neighbours(positions, particle_number, char_length, sigma, x):
         charges = np.random.random_sample((particle_number, 1))
         system = nbp.System(char_length, sigma, charges, positions)
