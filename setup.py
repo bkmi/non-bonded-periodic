@@ -5,9 +5,9 @@ import os
 from setuptools import setup
 from setuptools.command.test import test as testcommand
 
-from pathlib import Path
-
-env = Path('environment.yml')
+# from pathlib import Path
+#
+# env = Path('environment.yml')
 
 if os.name != 'nt':
     # UNIX/MAC
@@ -54,6 +54,6 @@ setup(
     url="https://github.com/machism0/non-bonded-periodic",
     packages=['nbp', 'nbp.test'],
     setup_requires=['pytest-runner'],
-    install_requires=['matplotlib', 'numpy', 'scipy', 'seaborn'],
+    install_requires=['matplotlib', 'numpy', 'scipy', 'seaborn', 'pathlib'],
     tests_require=['pytest']
 )
