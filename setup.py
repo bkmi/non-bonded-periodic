@@ -3,25 +3,6 @@ import os
 
 from setuptools import setup
 
-if os.name != 'nt':
-    # UNIX/MAC
-    try:
-        with open(os.devnull, 'wb') as quiet:
-            subprocess.run('conda env create -f environment.yml'.split(),
-                           check=True,
-                           stderr=quiet)
-    except subprocess.CalledProcessError:
-        subprocess.run('conda env update -f environment.yml'.split())
-else:
-    # WINDOWS
-    try:
-        with open(os.devnull, 'wb') as quiet:
-            subprocess.run('conda env create -f win-environment.yml'.split(),
-                           check=True,
-                           stderr=quiet)
-    except subprocess.CalledProcessError:
-        subprocess.run('conda env update -f win-environment.yml'.split())
-
 
 setup(
     name="non-bonded-periodic",
@@ -37,3 +18,28 @@ setup(
     install_requires=['matplotlib', 'numpy', 'scipy', 'seaborn', 'pathlib'],
     tests_require=['pytest']
 )
+
+
+def main():
+    if os.name != 'nt':
+        # UNIX/MAC
+        try:
+            with open(os.devnull, 'wb') as quiet:
+                subprocess.run('conda env create -f environment.yml'.split(),
+                               check=True,
+                               stderr=quiet)
+        except subprocess.CalledProcessError:
+            subprocess.run('conda env update -f environment.yml'.split())
+    else:
+        # WINDOWS
+        try:
+            with open(os.devnull, 'wb') as quiet:
+                subprocess.run('conda env create -f win-environment.yml'.split(),
+                               check=True,
+                               stderr=quiet)
+        except subprocess.CalledProcessError:
+            subprocess.run('conda env update -f win-environment.yml'.split())
+
+
+if __name__ == '__main__':
+    main()
