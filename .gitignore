@@ -1,9 +1,9 @@
 # PyCharm & Jupyter
 .idea/
 .ipynb_checkpoints/
-.circleci/
-.eggs/
-*.egg-info
+# .circleci/
+# .eggs/
+# *.egg-info
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
