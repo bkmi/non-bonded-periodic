@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import scipy.stats
-from .sysmodule import SystemState
+import nbp
 
 
 class MCMC:
@@ -11,10 +11,10 @@ class MCMC:
 
     def optimize(self, max_steps, d_energy_tol=1e-6):
         """Optimize from the last system state."""
-        actor = Optimizer(self.__system)
+        optimizer = Optimizer(self.__system)
         old_energy = 0
         for i in range(max_steps):
-            new_state, new_energy = actor.act()
+            new_state, new_energy = optimizer.act()
             self.__system.update_state(new_state)
             if abs(new_energy - old_energy) < d_energy_tol:
                 break
@@ -24,9 +24,9 @@ class MCMC:
 
     def simulate(self, steps, temperature):
         """Simulate from the last system state."""
-        actor = Simulator(self.__system)
+        simulator = Simulator(self.__system)
         for i in range(steps):
-            self.__system.update_state(actor.act(temperature))
+            self.__system.update_state(simulator.act(temperature))
         return self.__system
 
 
@@ -44,7 +44,7 @@ class Optimizer:
         particle = np.random.choice(positions.shape[0])
         proposal_positions = positions
         proposal_positions[particle] = sp.stats.multivariate_normal(np.zeros(3), cov * np.eye(3)).rvs()
-        proposal_state = SystemState(proposal_positions)
+        proposal_state = nbp.SystemState(proposal_positions)
         return proposal_state, proposal_state.energy()
 
     @staticmethod
