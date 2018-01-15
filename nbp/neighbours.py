@@ -2,7 +2,6 @@ import numpy as np
 import math
 import collections
 
-
 class Neighbours:
     """
     This class is used to evaluate the position of
@@ -20,12 +19,13 @@ class Neighbours:
         Instantiates a new Object of class Neighbours
         :system: Instance of class System
         """
-        # self.SystemInfo = system_info
-        # self.SystemState = system_state
+        self.SystemInfo = system_info
+        self.SystemState = system_state
         self.__box_length = self.SystemInfo.char_length()
         self.__subcells_inrow = 1
         self.__subcell_length = self.__create_subcells()
         self.__neighbour_list = self.__create_neighbours()
+
         pass
 
     def __create_subcells(self):
