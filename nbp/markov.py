@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import scipy.stats
-from .sysmodule import SystemState
+import nbp
 
 
 class MCMC:
@@ -44,7 +44,7 @@ class Optimizer:
         particle = np.random.choice(positions.shape[0])
         proposal_positions = positions
         proposal_positions[particle] = sp.stats.multivariate_normal(np.zeros(3), cov * np.eye(3)).rvs()
-        proposal_state = SystemState(proposal_positions)
+        proposal_state = nbp.SystemState(proposal_positions)
         return proposal_state, proposal_state.energy()
 
     @staticmethod

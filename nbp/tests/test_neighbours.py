@@ -1,5 +1,4 @@
-from . import SystemInfo, SystemState
-from . import Neighbours
+import nbp
 import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -10,9 +9,9 @@ def test_neighbours():
     positions = 4 * np.random.random_sample((10000, 3))
     charges = np.random.random_sample((100, 1))
     # random char length and sigma
-    system_info = SystemInfo(6, 0.2, charges)
-    system_state = SystemState(positions)
-    neighbours = Neighbours(system_info, system_state)
+    system_info = nbp.SystemInfo(6, 0.2, charges)
+    system_state = nbp.SystemState(positions)
+    neighbours = nbp.Neighbours(system_info, system_state)
     neighbours_list = neighbours.get_neighbours(positions[78])
 
     return neighbours_list

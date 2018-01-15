@@ -1,4 +1,4 @@
-from .markov import MCMC
+import nbp
 
 
 class System:
@@ -6,7 +6,7 @@ class System:
     def __init__(self, characteristic_length, sigma, particle_charges, positions):
         self.__systemInfo = SystemInfo(characteristic_length, sigma, particle_charges)
         self.__systemStates = [SystemState(positions)]
-        self.__mcmc = MCMC(self)
+        self.__mcmc = nbp.MCMC(self)
 
     def update_state(self, new_state):
         """Appends the new state to the systemStates list"""
