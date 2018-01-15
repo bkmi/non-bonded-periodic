@@ -1,14 +1,14 @@
 import numpy as np
 import scipy as sp
+import nbp
+
 from scipy.special import erfc
-from nbp import neighbours as nei
-from scipy import exp, pi
-from numpy import dot, sqrt
+
 
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
-    def __init__(self, characteristic_length, sigma, particle_charges, positions):
-        self.__systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, self)
+    def __init__(self, characteristic_length, sigma, particle_charges, periods, positions):
+        self.__systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, periods, self)
         self.__systemStates = [SystemState(positions, self)]
 
     def update_state(self, new_state):
@@ -37,7 +37,7 @@ class SystemInfo:
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
-    def __init__(self, characteristic_length, sigma, particle_charges, system, periods):
+    def __init__(self, characteristic_length, sigma, particle_charges, periods, system):
         self.__sigma = sigma
         self.__cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
         self.__epsilon0 = 1
@@ -88,7 +88,7 @@ class SystemState:
     """
     def __init__(self, positions, system):
         self.__positions = positions
-        self.__neighbours = nei.Neighbours()
+        self.__neighbours = nbp.Neighbours()
         self.__system = system
 
     def system(self):
@@ -116,15 +116,6 @@ class SystemState:
         n = self.system().info().periods()
         nb = self.neighbours()
 
-        # start with one box
-        # charge_matrix = np.outer(charges, charges.T)
-        # np.fill_diagonal(charge_matrix, 0)
-        # dist_matrix = np.fromfunction(lambda i, j: np.linalg.norm(pos[i] - pos[j]), (pos.shape[1], pos.shape[1]), dtype=int)
-        # same_box = np.sum(charge_matrix/dist_matrix * sp.special.erf(dist_matrix/(np.sqrt(2)*sigma)))
-        # now all other boxes
-        # charge_matrix = np.outer(charges, charges.T)
-        # other_boxes = None  # TODO
-
         # making sum for short energy
         shortsum = 0
         for i in range(len(nb.nb_pos)):
@@ -144,13 +135,13 @@ class SystemState:
             for y in range(reci_cutoff):
                 for z in range(reci_cutoff):
                     k = [x, y, z]
-                    k = [x * (2*pi / L) for x in k]
-                    k_length = sqrt(k[0]**2 + k[1]**2 + k[2]**2)
+                    k = [x * (2*np.pi / L) for x in k]
+                    k_length = np.sqrt(k[0]**2 + k[1]**2 + k[2]**2)
                     for i in range(len(pos)):                      # ToDo In range of NOT neighbour
                         q = charges[i]
                         r = pos[i]
-                        structure_factor += q * exp(1j * dot(k, r))
-                    longsum += abs(structure_factor)**2 * exp(-sigma**2 * k_length**2 / 2) / k_length**2
+                        structure_factor += q * np.exp(1j * np.dot(k, r))
+                    longsum += abs(structure_factor)**2 * np.exp(-sigma**2 * k_length**2 / 2) / k_length**2
 
         energy_short = 1/(8*np.pi*epsilon0)*shortsum
 
