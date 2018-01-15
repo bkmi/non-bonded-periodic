@@ -24,6 +24,14 @@ class System:
         """Gives all the dynamic information about the system"""
         return self.__systemStates
 
+    def optimize(self, max_steps, d_energy_tol=1e-6):
+        """Optimize the system to a lower energy level."""
+        self.__mcmc.optimize(max_steps, d_energy_tol=d_energy_tol)
+
+    def simulate(self, steps, temperature):
+        """Simulate the system at a particular temperature."""
+        self.__mcmc.simulate(steps, temperature)
+
 
 class SystemInfo:
     """This class represents all the static information of the system

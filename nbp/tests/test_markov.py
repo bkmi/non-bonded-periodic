@@ -12,7 +12,5 @@ def test_optimize():
     mcmc = nbp.MCMC(system)
 
 
-
-
 def test_simulate():
-    pass
+    assert(1==1)
