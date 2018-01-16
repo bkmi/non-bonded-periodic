@@ -128,20 +128,19 @@ class SystemState:
             sigma = self.system().info().sigma()
             L = self.system().info().char_length()
             pos = self.positions()
-            n = self.system().info().periods()
             nb = self.neighbours()
 
             # making sum for short energy
             shortsum = 0
-            for i in range(len(pos[i])):
+            for i in range(len(pos)):
                 neighbour = nb.get_neighbours(pos[i])
                 for j in range(len(neighbour.nb_pos)):
                     if i != j:
                         distance = neighbour.nb_dist[j]
                         qi = charges[i]
                         qj = charges[neighbour.nb_pos[j]]
-                        shortsum += (qi * qj) / (distance + n * L) * sp.special.erfc(
-                            (np.linalg.norm(distance) + n * L) / (np.sqrt(2) * sigma))
+                        shortsum += (qi * qj) / (distance) * sp.special.erfc(
+                            (np.linalg.norm(distance)) / (np.sqrt(2) * sigma))
 
             # making sum for long energy
             longsum = 0
