@@ -2,10 +2,9 @@ name: nbp
 channels:
 - defaults
 dependencies:
-- matplotlib=2.0.2
-- numpy=1.13.1
-- python=3.5.4
-- scipy=0.19.1
-- seaborn=0.8
+- matplotli
+- numpy
+- python=3
+- scipy
 prefix: C:\Users\Kurt Sinodaur\AppData\Local\conda\conda\envs\nbp
 
