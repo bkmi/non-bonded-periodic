@@ -9,7 +9,7 @@ Positions of multiple particles are organized: (particle (row), dimension (colum
 Neighbour particles call with method get_neighbours() are given as list of positions
 
 ### Authors:  
-Alexy,
+Alexey,
 Ben,
 Chris,
 Ludovica,

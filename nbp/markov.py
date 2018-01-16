@@ -68,11 +68,33 @@ class Optimizer:
 class Simulator:
     """The class that simulates."""
     def __init__(self, system):
-        self._system = system
+        self.__system = system
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to simulate"""
-        return None
+        cov = 1     #TODO scale covariance
+        num_particles = len(self.system.state().positions())
+        indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
+        proposal_state = self.__metropolis(indices_toMove, cov)
+        if self.__check(proposal_state, temperature):
+            self.system.update_state(proposal_state)
+        else:
+            self.system.update_state(self.system.state())
 
-    def _check(self):
-        pass
+    def __check(self, state, temperature):
+        """Checks for the acceptance of a proposal state"""
+        beta = 1  # TODO: Calculate beta (with dim=1) used in Boltzmann Factor
+        energy_prev = self.system.states()[-1].energy()
+        energy_curr = state.energy()
+        p_acc = beta * (energy_curr-energy_prev)
+        if np.random.random() <= p_acc:
+            return True
+        else:
+            return False
+
+    def __metropolis(self, indices, cov):
+        """Proposes the new states"""
+        new_positions = np.copy(self.system.state().positions())
+        new_positions[indices] = np.array([sp.stats.multivariate_normal(each, cov=cov).rvs().tolist() for each in new_positions[indices]])
+        proposal_state = SystemState(new_positions)
+        return proposal_state
