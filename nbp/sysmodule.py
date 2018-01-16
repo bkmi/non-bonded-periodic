@@ -133,15 +133,15 @@ class SystemState:
 
             # making sum for short energy
             shortsum = 0
-            for i in range(len(nb.nb_pos)):
-                for j in range(len(nb.nb_pos)):
+            for i in range(len(pos[i])):
+                neighbour = nb.get_neighbours(pos[i])
+                for j in range(len(neighbour.nb_pos)):
                     if i != j:
-                        ri = pos[nb.nb_pos[i]]
-                        rj = pos[nb.nb_pos[j]]
-                        qi = charges[nb.nb_pos[i]]
-                        qj = charges[nb.nb_pos[j]]
-                        shortsum += (qi * qj) / (ri - rj + n * L) * sp.special.erfc(
-                            (np.linalg.norm(ri - rj) + n * L) / (np.sqrt(2) * sigma))
+                        distance = neighbour.nb_dist[j]
+                        qi = charges[i]
+                        qj = charges[neighbour.nb_pos[j]]
+                        shortsum += (qi * qj) / (distance + n * L) * sp.special.erfc(
+                            (np.linalg.norm(distance) + n * L) / (np.sqrt(2) * sigma))
 
             # making sum for long energy
             longsum = 0
@@ -151,7 +151,7 @@ class SystemState:
                 for y in range(reci_cutoff):
                     for z in range(reci_cutoff):
                         k = [x, y, z]
-                        k = [x * (2 * np.pi / L) for x in k]
+                        k = [i * (2 * np.pi / L) for i in k]
                         k_length = np.sqrt(k[0] ** 2 + k[1] ** 2 + k[2] ** 2)
                         for i in range(len(pos)):  # ToDo In range of NOT neighbour
                             q = charges[i]
