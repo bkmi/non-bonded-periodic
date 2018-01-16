@@ -116,9 +116,14 @@ class Neighbours:
 
     def update_neighbours(self):
         """
+        Updates the neighbour list with the new system_state.
+        System state (e.g. box length etc) should be the same.
         :return:new neighbour list.
         """
-
+        self.SystemState = system_state
+        self._subcell_length = self._create_subcells()
+        self._neighbour_list = self._create_neigbours
+      
         return self._neighbour_list
 
     def get_neighbours(self, particle_pos):
