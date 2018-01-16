@@ -26,8 +26,6 @@ class Neighbours:
         self._subcell_length = self._create_subcells()
         self._neighbour_list = self._create_neighbours()
 
-        pass
-
     def _create_subcells(self):
         """
         Calculates the length of the subcells based on the skin radius.
@@ -97,7 +95,7 @@ class Neighbours:
         # calculate the subcell ID for each axis (x, y, z)
         for axis in range(3):
             try:
-                subcell_id_3d[axis] = math.floor(position[axis]
+                subcell_id_3d[axis] = np.floor(position[axis]
                                                  / self._subcell_length)
             except OverflowError:
                 pass
@@ -192,10 +190,21 @@ class Neighbours:
         neighbours = new_neighbours
 
         # Create namedtuple for easy access of output
-        Result = collections.namedtuple("Neighbour_result", ["nb_pos", "nb_dist"])
-        r = Result(nb_pos=neighbours, nb_dist=neighbours_distance)
+        # Result = collections.namedtuple("Neighbour_result", ["nb_pos", "nb_dist"])
+        # r = Result(nb_pos=neighbours, nb_dist=neighbours_distance)
 
-        return r
+        return neighbours, neighbours_distance
+
+    def set_neighbours(self, particle_pos):
+        self._neighbours, self._neighbours_distance = self.get_neighbours(particle_pos)
+
+    @property
+    def nb_pos(self):
+        return self._neighbours
+
+    @property
+    def nb_dist(self):
+        return self._neighbours_distance
 
     def _get_neighbours_subcells(self, particle_pos):
         """
@@ -216,14 +225,14 @@ class Neighbours:
         # First set of neighbour cells 0 to 8
         for cell in range(9):
             # x coordinates
-            subcells_id_3d[cell][0] = math.floor((particle_pos[0]
+            subcells_id_3d[cell][0] = np.floor((particle_pos[0]
                                                   - self._subcell_length)
                                                  / self._subcell_length)
 
         # cells 18 to 26
         for cell in range(18, 27):
             # x coordinate
-            subcells_id_3d[cell][0] = math.floor((particle_pos[0]
+            subcells_id_3d[cell][0] = np.floor((particle_pos[0]
                                                   - self._subcell_length)
                                                   / self._subcell_length)
 
@@ -270,7 +279,7 @@ class Neighbours:
         """
         subcell_id_3d = np.zeros(3)
         for axis in range(3):
-            subcell_id_3d[axis] = math.floor(particle_pos[axis]
+            subcell_id_3d[axis] = np.floor(particle_pos[axis]
                                             / self._subcell_length)
         return subcell_id_3d
 
@@ -283,9 +292,9 @@ class Neighbours:
         :return: subcell id for y axis
         """
         if positive == 0:
-            y_id = math.floor((particle_pos[1] + self._subcell_length) / self._subcell_length)
+            y_id = np.floor((particle_pos[1] + self._subcell_length) / self._subcell_length)
         else:
-            y_id = math.floor((particle_pos[1] - self._subcell_length) / self._subcell_length)
+            y_id = np.floor((particle_pos[1] - self._subcell_length) / self._subcell_length)
         return y_id
 
     def _cell_z(self, positive, particle_pos):
@@ -297,7 +306,7 @@ class Neighbours:
         :return: subcell id for y axis
         """
         if positive == 0:
-            z_id = math.floor((particle_pos[2] + self._subcell_length) / self._subcell_length)
+            z_id = np.floor((particle_pos[2] + self._subcell_length) / self._subcell_length)
         else:
-            z_id = math.floor((particle_pos[2] - self._subcell_length) / self._subcell_length)
+            z_id = np.floor((particle_pos[2] - self._subcell_length) / self._subcell_length)
         return z_id

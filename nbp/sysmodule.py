@@ -122,6 +122,8 @@ class SystemState:
 
     def energy(self):
         if self._energy is None:
+            self.neighbours().set_neighbours(self.positions())
+
             V = self.system().info().volume()
             epsilon0 = self.system().info().epsilon0()
             charges = self.system().info().particle_charges()
