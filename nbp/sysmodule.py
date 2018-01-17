@@ -10,17 +10,12 @@ class System:
 
     def __init__(self, characteristic_length, sigma, particle_charges, positions):
         self._systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, self)
-        self._systemStates = [SystemState(positions, self)]
-        self._MCMC = nbp.MCMC(self)
+        init_state = SystemState(positions, self)
+        self._systemStates = [init_state]
 
     def update_state(self, new_state):
         """Appends the new state to the systemStates list"""
-        if isinstance(new_state, SystemState):
-            self._systemStates.append(new_state)
-        elif isinstance(new_state, list) and isinstance(new_state[0], SystemState):
-            self._systemStates.extend(new_state)
-        else:
-            raise TypeError('SystemState could not be updated. Item is not type(SystemState) or a list of SystemState')
+        self._systemStates.append(new_state)
 
     def info(self):
         """Gives the static information about the system"""
@@ -34,18 +29,13 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps, d_energy_tol=1e-6, no_progress_break=10):
+    def optimize(self):
         """Optimize the system to a lower energy level."""
-        additional_states = self._MCMC.optimize(max_steps=max_steps, d_energy_tol=d_energy_tol,
-                                                no_progress_break=no_progress_break)
-        self.update_state(additional_states)
-        return self.state()
+        pass
 
-    def simulate(self, steps, temperature):
+    def simulate(self):
         """Simulate the system at a given temperature"""
-        additional_states = self._MCMC.simulate(steps=steps, temperature=temperature)
-        self.update_state(additional_states)
-        return self.state()
+        pass
 
 
 class SystemInfo:
@@ -62,7 +52,7 @@ class SystemInfo:
         self._sigma = sigma
         self._cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
         self._epsilon0 = 1
-        self._particle_charges = np.asarray(particle_charges)
+        self._particle_charges = particle_charges
         self._char_length = characteristic_length
         self._system = system
 
@@ -105,7 +95,7 @@ class SystemState:
     """
 
     def __init__(self, positions, system):
-        self._positions = np.asarray(positions)
+        self._positions = positions
         self._system = system
         self._neighbours = None
         self._potential = None
