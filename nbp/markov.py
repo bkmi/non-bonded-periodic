@@ -6,32 +6,34 @@ import nbp
 
 class MCMC:
     """An class which applies actor to a System instance and doing MCMC for a set of steps."""
+
     def __init__(self, system):
         self._system = system
 
-    def optimize(self, max_steps, d_energy_tol=1e-6):
+    def optimize(self, max_steps, d_energy_tol=1e-6, no_progress_break=10):
         """Optimize from the last system state."""
         optimizer = Optimizer(self._system)
-        old_energy = 0
+        energies = []
         for i in range(max_steps):
             new_state, new_energy = optimizer.act()
             self._system.update_state(new_state)
-            if abs(new_energy - old_energy) < d_energy_tol:
+            energies.append(new_energy)
+            if len(energies) > no_progress_break and np.all(
+                    np.less(np.abs(np.asarray(energies)[-no_progress_break:] - new_energy), d_energy_tol)):
                 break
-            else:
-                old_energy = new_energy
-        return self._system
+        return self._system.state()
 
     def simulate(self, steps, temperature):
         """Simulate from the last system state."""
         simulator = Simulator(self._system)
         for i in range(steps):
             self._system.update_state(simulator.act(temperature))
-        return self._system
+        return self._system.state()
 
 
 class Optimizer:
     """The class that optimizes the system to temperature 0"""
+
     def __init__(self, system):
         self._system = system
         self._proposal = None
@@ -54,7 +56,7 @@ class Optimizer:
         else:
             return False
 
-    def act(self, temperature=0):
+    def act(self):
         """Overriding of the function act of the Actor in order for it to optimize"""
         cov = self._system.info().char_length()
         orig_energy = self._system.energy()
@@ -67,19 +69,20 @@ class Optimizer:
 
 class Simulator:
     """The class that simulates."""
+
     def __init__(self, system):
         self._system = system
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to simulate"""
-        cov = 1     #TODO scale covariance
+        cov = 1  # TODO scale covariance
         num_particles = len(self._system.state().positions())
         indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
         proposal_state = self._metropolis(indices_toMove, cov)
         if self._check(proposal_state, temperature):
-            self._system.update_state(proposal_state)
+            return proposal_state
         else:
-            self._system.update_state(self._system.state())
+            return self._system.state()
 
     def _check(self, state, temperature):
         """Checks for the acceptance of a proposal state"""
@@ -95,6 +98,7 @@ class Simulator:
     def _metropolis(self, indices, cov):
         """Proposes the new states"""
         new_positions = np.copy(self._system.state().positions())
-        new_positions[indices] = np.array([sp.stats.multivariate_normal(each, cov=cov).rvs().tolist() for each in new_positions[indices]])
-        proposal_state = nbp.SystemState(new_positions)
+        new_positions[indices] = np.array(
+            [sp.stats.multivariate_normal(each, cov=cov).rvs().tolist() for each in new_positions[indices]])
+        proposal_state = nbp.SystemState(new_positions, self._system)
         return proposal_state
