@@ -9,12 +9,14 @@ class MCMC:
     def __init__(self, system):
         self._system = system
 
-    def optimize(self, max_steps, d_energy_tol=1e-6, no_progress_break=10):
+    def optimize(self, max_steps, cov=None, d_energy_tol=1e-6, no_progress_break=10, num_particles=0.25):
         """Optimize from the last system state."""
         optimizer = Optimizer(self._system)
         energies = []
+        if cov is None:
+            cov = self._system.info().cutoff()
         for i in range(max_steps):
-            new_state, new_energy = optimizer.act()
+            new_state, new_energy = optimizer.act(cov, num_particles=num_particles)
             self._system.update_state(new_state)
             energies.append(new_energy)
             if len(energies) > no_progress_break and np.all(
@@ -36,14 +38,20 @@ class Optimizer:
         self._system = system
         self._proposal = None
 
-    def _propose(self, cov):
-        """Propose the next state, moves a single particle randomly with a 3d gaussian.
+    def _propose(self, cov, num_particles=None):
+        """Propose the next state, moves a num_particles randomly with a 3d gaussian.
 
         returns proposal state, proposal_energy"""
         positions = self._system.state().positions()
-        particle = np.random.choice(positions.shape[0])
-        proposal_positions = positions
-        proposal_positions[particle] = sp.stats.multivariate_normal(np.zeros(3), cov * np.eye(3)).rvs()
+        if isinstance(num_particles, float) and num_particles <= 1:
+            num_particles = int(positions.shape[0] * num_particles)
+        elif isinstance(num_particles, int) and num_particles <= positions.shape[0]:
+            pass
+        else:
+            raise ValueError('num_particles must be a percentage (float) or a number of particles (int).')
+        particles = np.random.choice(positions.shape[0], size=num_particles, replace=False)
+        proposal_positions = positions[particles] + sp.stats.multivariate_normal(
+            np.zeros(3), cov * np.eye(3)).rvs(num_particles)
         proposal_state = nbp.SystemState(proposal_positions, self._system)
         return proposal_state, proposal_state.energy()
 
@@ -54,11 +62,10 @@ class Optimizer:
         else:
             return False
 
-    def act(self):
-        """Overriding of the function act of the Actor in order for it to optimize"""
-        cov = self._system.info().char_length()
+    def act(self, cov, num_particles=0.25):
+        """Propose and check then return a new state."""
         orig_energy = self._system.energy()
-        self._proposal, proposal_energy = self._propose(cov)
+        self._proposal, proposal_energy = self._propose(cov, num_particles=num_particles)
         if self._check(orig_energy, proposal_energy):
             return self._proposal, proposal_energy
         else:

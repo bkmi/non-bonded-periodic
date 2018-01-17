@@ -7,6 +7,7 @@ from scipy.special import erfc
 
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
+
     def __init__(self, characteristic_length, sigma, particle_charges, positions):
         self._systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, self)
         self._systemStates = [SystemState(positions, self)]
@@ -33,9 +34,10 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps, d_energy_tol=1e-6, no_progress_break=10):
+    def optimize(self, max_steps, cov=None, d_energy_tol=1e-6, no_progress_break=10, num_particles=0.25):
         """Optimize the system to a lower energy level."""
-        return self._MCMC.optimize(max_steps=max_steps, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break)
+        return self._MCMC.optimize(max_steps, cov=cov, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break,
+                                   num_particles=num_particles)
 
     def simulate(self, steps, temperature):
         """Simulate the system at a given temperature"""
@@ -51,6 +53,7 @@ class SystemInfo:
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
+
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
         self._cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
@@ -96,6 +99,7 @@ class SystemState:
     electrostatics: the forces, the energies and the potentials of the particles
     neighbours: the current status of the neighbours
     """
+
     def __init__(self, positions, system):
         self._positions = np.asarray(positions)
         self._system = system
