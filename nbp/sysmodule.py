@@ -7,7 +7,6 @@ from scipy.special import erfc
 
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
-
     def __init__(self, characteristic_length, sigma, particle_charges, positions):
         self._systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, self)
         self._systemStates = [SystemState(positions, self)]
@@ -52,7 +51,6 @@ class SystemInfo:
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
-
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
         self._cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
@@ -98,7 +96,6 @@ class SystemState:
     electrostatics: the forces, the energies and the potentials of the particles
     neighbours: the current status of the neighbours
     """
-
     def __init__(self, positions, system):
         self._positions = np.asarray(positions)
         self._system = system

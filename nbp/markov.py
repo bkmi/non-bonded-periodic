@@ -6,7 +6,6 @@ import nbp
 
 class MCMC:
     """An class which applies actor to a System instance and doing MCMC for a set of steps."""
-
     def __init__(self, system):
         self._system = system
 
@@ -33,7 +32,6 @@ class MCMC:
 
 class Optimizer:
     """The class that optimizes the system to temperature 0"""
-
     def __init__(self, system):
         self._system = system
         self._proposal = None
@@ -46,7 +44,7 @@ class Optimizer:
         particle = np.random.choice(positions.shape[0])
         proposal_positions = positions
         proposal_positions[particle] = sp.stats.multivariate_normal(np.zeros(3), cov * np.eye(3)).rvs()
-        proposal_state = nbp.SystemState(proposal_positions)
+        proposal_state = nbp.SystemState(proposal_positions, self._system)
         return proposal_state, proposal_state.energy()
 
     @staticmethod
@@ -69,7 +67,6 @@ class Optimizer:
 
 class Simulator:
     """The class that simulates."""
-
     def __init__(self, system):
         self._system = system
 
