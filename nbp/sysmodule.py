@@ -48,7 +48,7 @@ class SystemInfo:
     """This class represents all the static information of the system
 
     characteristic_length = L in the notes
-    sigma: Constant related to lennard jones
+    sigma: distance at which the inter-particle potential is zero
     cutoff_radius: the radius chosen to do the cutoff
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
@@ -56,7 +56,8 @@ class SystemInfo:
 
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
-        self._cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
+        self._worse_sigma = sigma.np.max()
+        self._cutoff_radius = self._worse_sigma * 2.5  # sigma * 2.5 is a standard approximation
         self._epsilon0 = 1
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = characteristic_length
@@ -84,6 +85,11 @@ class SystemInfo:
 
     def sigma(self):
         return self._sigma
+
+    def worse_sigma(self):
+        """Returns the maximum value of all the particles' couples' sigmas"""
+        return self._worse_sigma
+
 
     def epsilon0(self):
         return self._epsilon0
@@ -121,9 +127,43 @@ class SystemState:
             self._neighbours = nbp.Neighbours(self._system.info(), self._system.state())
         return self._neighbours
 
+    def _potential_lj(self, distance: object, sigma: object) -> object:
+
+        """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
+        if  sigma < 0:
+            raise AttributeError('Sigma can\'t be smaller than zero')
+        elif distance <= 0:
+            raise AttributeError('The distance can\'t be smaller than or equal zero')
+
+        q = (sigma / distance)**6
+
+        return 4.0 * self._epsilon0 * (q * (q - 1))
+
+
+
     def potential(self):
+        """Calculates the Lennard-Jones potential between each couple of particles
+
+        VLJ = epsilon * ((sigma/r)^12 + (sigma/r)^6)
+
+        :return a symmetric matrix with the potential between each couple:
+                [i][j] = [j][i] is the potential between particle i and j
+                or the total potential? Many many questions
+
+                OR THE TOTAL POTENTIAL, TO DECIDE!"""
         if self._potential is None:
+            """If we want to store every pot_lj:
+            self._potential = np.zeros(self.positions().shape)
+            """
             self._potential = 0
+            particle_number = self._positions.size
+            for i in range (particle_number):
+                neighbour = self._neighbours.get_neighbours(self._positions[i])
+                for j in range (i, particle_number):
+                    pot_lj = self._potential_lj(neighbour.nb_dist[j], self._system.sigma()[i][neighbour.nb_pos[j]])
+                    self._potential += pot_lj
+                    """Or if we want to store every pot_lj:
+                    self._potential[i][j] = self._potential[j][i] = pot_lj"""
         return self._potential
 
     def energy(self):
