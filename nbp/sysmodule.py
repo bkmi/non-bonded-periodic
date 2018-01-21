@@ -14,7 +14,9 @@ class System:
         self._MCMC = nbp.MCMC(self)
 
     def update_state(self, new_state):
-        """Appends the new state to the systemStates list"""
+        """Appends the new state to the systemStates list
+
+        :param new_state: ????"""
         if isinstance(new_state, SystemState):
             self._systemStates.append(new_state)
         elif isinstance(new_state, list) and isinstance(new_state[0], SystemState):
@@ -118,7 +120,7 @@ class SystemState:
 
     def neighbours(self):
         if self._neighbours is None:
-            self._neighbours = nbp.Neighbours(self._system.info(), self._system.state())
+            self._neighbours = nbp.Neighbours(self._system.info(), self._system.state(), self.system() )
         return self._neighbours
 
     def potential(self):

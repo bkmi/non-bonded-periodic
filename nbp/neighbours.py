@@ -14,17 +14,24 @@ class Neighbours:
     update_neighbours, get_neighbours
 
     """
-    def __init__(self, system_info, system_state):
+    def __init__(self, system_info, system_state, system):
         """
         Instantiates a new Object of class Neighbours
         :system: Instance of class System
         """
         self.SystemInfo = system_info
         self.SystemState = system_state
+        # It might be possible to merge info and state into this.
+        self.System = system
         self._box_length = self.SystemInfo.char_length()
+        self._skin_radius = self.SystemInfo.sigma() * 3
+          # The 3 is just an option that mostly works (?)
         self._subcells_inrow = 1
         self._subcell_length = self._create_subcells()
         self._neighbour_list = self._create_neighbours()
+        # variables needed for update
+        self._last_update = 0
+        self._update_count = 0
 
         pass
 
@@ -34,12 +41,8 @@ class Neighbours:
         This helps to avoid having to update every time.
         :return: length of subcell
         """
-        # define skin radius by using sigma.
-        # The 3 is just an option that mostly works (?)
-        _skin_radius = self.SystemInfo.sigma() * 3
-
         # calculate subcell size.
-        while _skin_radius < self._box_length / self._subcells_inrow:
+        while self._skin_radius < self._box_length / self._subcells_inrow:
             self._subcells_inrow += 1
 
         print("Number of subcells per row:", self._subcells_inrow)
@@ -114,16 +117,31 @@ class Neighbours:
 
         return subcell_id
 
+    @property
     def update_neighbours(self):
         """
         Updates the neighbour list with the new system_state.
         System state (e.g. box length etc) should be the same.
         :return:new neighbour list.
         """
-        self.SystemState = system_state
-        self._subcell_length = self._create_subcells()
-        self._neighbour_list = self._create_neigbours
-      
+        # get positions from last update
+        positions_old = self.System.states()[self._last_update].positions()
+        # get current positions
+        positions_current = self.System.state().positions()
+        print("type positions old:", type(positions_current) )
+        print("positions old:", positions_current)
+
+        movement = np.sqrt(positions_old**2 - positions_current**2)
+        print("movement:", movement)
+        # if movement of particle is far enough that it could be
+        # new neighbour then update system.
+        if np.max(movement) > (self._skin_radius - self.SystemInfo.cutoff()):
+            self._neighbour_list = self._create_neigbours
+            self._last_update = self._update_count
+            print("updated list")
+
+        self._update_count = + 1
+
         return self._neighbour_list
 
     def get_neighbours(self, particle_pos):
