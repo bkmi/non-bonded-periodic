@@ -49,7 +49,7 @@ class System:
 class SystemInfo:
     """This class represents all the static information of the system
 
-    characteristic_length = L in the notes
+    characteristic_length = L in the notes, rounded up to the nearest n * cutoff_radius
     sigma: Constant related to lennard jones
     cutoff_radius: the radius chosen to do the cutoff
     epsilon0: physical constant
@@ -58,11 +58,14 @@ class SystemInfo:
 
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
-        self._cutoff_radius = sigma * 2.5  # sigma * 2.5 is a standard approximation
+        self._cutoff_radius = sigma * 3
         self._epsilon0 = 1
         self._particle_charges = np.asarray(particle_charges)
-        self._char_length = characteristic_length
+        self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
+
+        if not self._cutoff_radius <= self._char_length/2:
+            raise ValueError('The cutoff radius must be smaller than characteristic length divided by 2.')
 
     def system(self):
         return self._system
@@ -102,12 +105,14 @@ class SystemState:
     neighbours: the current status of the neighbours
     """
 
-    def __init__(self, positions, system):
+    def __init__(self, positions, system, verbose=False):
+        self._verbose = verbose
         self._positions = np.asarray(positions)
         self._system = system
         self._neighbours = None
         self._potential = None
         self._energy = None
+        # self._energy_lj = None
         self._forces = None
 
     def system(self):
@@ -120,7 +125,8 @@ class SystemState:
 
     def neighbours(self):
         if self._neighbours is None:
-            self._neighbours = nbp.Neighbours(self._system.info(), self._system.state(), self.system() )
+            self._neighbours = nbp.Neighbours(self._system.info(), self._system.state(), self.system(),
+                                              verbose=self._verbose)
         return self._neighbours
 
     def potential(self):
@@ -128,7 +134,30 @@ class SystemState:
             self._potential = 0
         return self._potential
 
+    # # Ben's
+    # def energy_lj(self):
+    #     if self._energy_lj is None:
+    #         epsilon = 1
+    #         sigma = self.system().info().sigma()
+    #         pos = self.positions()
+    #         nb = self.neighbours()
+    #
+    #         energy = 0
+    #         for particle in range(pos.shape[0]):
+    #             rs = nb.get_neighbours(pos[particle]).nb_dist
+    #             energy += np.sum(4*epsilon*((sigma/rs)**12 - (sigma/rs)**6))
+    #
+    #         self._energy_lj = energy
+    #     return self._energy_lj
+
     def energy(self):
+        # Switch on columb versus lj
+
+        # Don't use a quad loop. Build grid of k vectors at the start and look over it.
+        # use symmetry to reduce to real space only in k
+
+        # take the eqns from long range ewald, sub structure factors, use eulor/symm ->
+        # couple interaction between two particles via ewald -> yeilds forces. (complex square of the structure factor)
         if self._energy is None:
             V = self.system().info().volume()
             epsilon0 = self.system().info().epsilon0()
@@ -178,3 +207,22 @@ class SystemState:
         if self._forces is None:
             self._forces = 0
         return self._forces
+
+
+class FrameAnalysis:
+    def __init__(self, system, positions_per_frame, energies_per_frame):
+        self._system = system
+        self._energies = energies_per_frame
+        for i in positions_per_frame:
+            self._system.update_state(i, self._system)
+
+    def calc_energies(self):
+        for i, v in enumerate(self._system.states()):
+            calc_e = v.energy()
+            given_e = self._energies
+            diff = np.abs(calc_e - given_e)
+            print("Frame {0} Calc_Energy {1} Given_Energy {2} Diff {3}".format(i, calc_e, given_e, diff))
+
+# distance vector
+# r in real^(N, D)
+# np.linalg.norm(r[:, None, :] - r[None, :, :], axis=2)

@@ -14,11 +14,12 @@ class Neighbours:
     update_neighbours, get_neighbours
 
     """
-    def __init__(self, system_info, system_state, system):
+    def __init__(self, system_info, system_state, system, verbose=False):
         """
         Instantiates a new Object of class Neighbours
         :system: Instance of class System
         """
+        self._verbose = verbose
         self.SystemInfo = system_info
         self.SystemState = system_state
         # It might be possible to merge info and state into this.
@@ -45,7 +46,8 @@ class Neighbours:
         while self._skin_radius < self._box_length / self._subcells_inrow:
             self._subcells_inrow += 1
 
-        print("Number of subcells per row:", self._subcells_inrow)
+        if self._verbose:
+            print("Number of subcells per row:", self._subcells_inrow)
         subcell_length = self._box_length / self._subcells_inrow
 
         return subcell_length
@@ -128,17 +130,20 @@ class Neighbours:
         positions_old = self.System.states()[self._last_update].positions()
         # get current positions
         positions_current = self.System.state().positions()
-        print("type positions old:", type(positions_current) )
-        print("positions old:", positions_current)
+        if self._verbose:
+            print("type positions old:", type(positions_current) )
+            print("positions old:", positions_current)
 
         movement = np.sqrt(positions_old**2 - positions_current**2)
-        print("movement:", movement)
+        if self._verbose:
+            print("movement:", movement)
         # if movement of particle is far enough that it could be
         # new neighbour then update system.
         if np.max(movement) > (self._skin_radius - self.SystemInfo.cutoff()):
             self._neighbour_list = self._create_neigbours
             self._last_update = self._update_count
-            print("updated list")
+            if self._verbose:
+                print("updated list")
 
         self._update_count = + 1
 
@@ -173,7 +178,8 @@ class Neighbours:
                 index = int(self._neighbour_list[index])
 
         nb_length = np.shape(neighbours)[0]
-        print("neighbour length:", nb_length)
+        if self._verbose:
+            print("neighbour length:", nb_length)
         recent_neighbours = []
         # get distance from particle to neighbours
         for i in range(nb_length):
