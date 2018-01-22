@@ -153,23 +153,22 @@ class SystemState:
             # making sum for long energy
             longsum = 0
             structure_factor = 0
-            reci_cutoff = 100  # Maybe put into system?
+            reci_cutoff = 50                # Maybe put into system?
             for x in range(reci_cutoff):
-                for y in range(reci_cutoff):
-                    for z in range(reci_cutoff):
+                for y in range(-reci_cutoff, reci_cutoff, 1):
+                    for z in range(-reci_cutoff, reci_cutoff, 1):
                         k = [x, y, z]
                         k = [i * (2 * np.pi / L) for i in k]
                         k_length = np.sqrt(k[0] ** 2 + k[1] ** 2 + k[2] ** 2)
-                        for i in range(len(pos)):  # ToDo In range of NOT neighbour
+                        for i in range(len(pos)):
                             q = charges[i]
                             r = pos[i]
-                            structure_factor += q * np.exp(1j * np.dot(k, r))
+                            structure_factor += 2 * q * np.cos(np.dot(k, r))
+                            # its *2 because we calc only half the k vectors (symmetry)
                         longsum += abs(structure_factor) ** 2 * np.exp(-sigma ** 2 * k_length ** 2 / 2) / k_length ** 2
 
             energy_short = 1 / (8 * np.pi * epsilon0) * shortsum
-
             energy_long = 1 / (V * epsilon0) * longsum
-
             energy_self = (2 * epsilon0 * sigma * (2 * np.pi) ** (3 / 2)) ** (-1) * np.sum(charges ** 2)
 
             self._energy = energy_short + energy_long - energy_self
