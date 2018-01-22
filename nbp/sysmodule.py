@@ -205,7 +205,7 @@ class SystemState:
             self._energy = energy_short + energy_long - energy_self
         return self._energy
 
-        def forces(self):
+    def forces(self):
         if self._forces is None:
             pos = self.positions()
             charges = self.system().info().particle_charges()
