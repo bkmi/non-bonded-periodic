@@ -169,9 +169,11 @@ class SystemState:
             for x in range(reci_cutoff):
                 for y in range(-reci_cutoff, reci_cutoff, 1):
                     for z in range(-reci_cutoff, reci_cutoff, 1):
-                        k = [x, y, z]
-                        k = [i * (2 * np.pi / L) for i in k]
-                        k_vectors.append(k)
+                        test = x+y+z
+                        if test != 0:
+                            k = [x, y, z]
+                            k = [i * (2 * np.pi / L) for i in k]
+                            k_vectors.append(k)
 
             # making sum for short energy
             shortsum = 0
@@ -222,9 +224,11 @@ class SystemState:
             for x in range(reci_cutoff):
                 for y in range(-reci_cutoff, reci_cutoff, 1):
                     for z in range(-reci_cutoff, reci_cutoff, 1):
-                        k = [x, y, z]
-                        k = [i * (2 * np.pi / L) for i in k]
-                        k_vectors.append(k)
+                        test = x+y+z
+                        if test != 0:
+                            k = [x, y, z]
+                            k = [i * (2 * np.pi / L) for i in k]
+                            k_vectors.append(k)
 
             # forces resulting from short energy
             for i in range(len(pos)):
