@@ -49,6 +49,7 @@ class SystemInfo:
 
     characteristic_length = L in the notes
     sigma: distance at which the inter-particle potential is zero
+    worse_sigma: the biggest of all the sigmas
     cutoff_radius: the radius chosen to do the cutoff
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
@@ -56,7 +57,7 @@ class SystemInfo:
 
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
-        self._worse_sigma = sigma.np.max()
+        self._worse_sigma = max(sigma)
         self._cutoff_radius = self._worse_sigma * 2.5  # sigma * 2.5 is a standard approximation
         self._epsilon0 = 1
         self._particle_charges = np.asarray(particle_charges)
@@ -127,8 +128,7 @@ class SystemState:
             self._neighbours = nbp.Neighbours(self._system.info(), self._system.state())
         return self._neighbours
 
-    def _potential_lj(self, distance: object, sigma: object) -> object:
-
+    def _potential_lj(self, distance: float, sigma: float) -> float:
         """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
         if  sigma < 0:
             raise AttributeError('Sigma can\'t be smaller than zero')
@@ -137,33 +137,30 @@ class SystemState:
 
         q = (sigma / distance)**6
 
-        return 4.0 * self._epsilon0 * (q * (q - 1))
+        return 4.0 * self._system.info().epsilon0() * (q * (q - 1))
 
-
-
-    def potential(self):
+    def potential(self, lj=True):
         """Calculates the Lennard-Jones potential between each couple of particles
 
-        VLJ = epsilon * ((sigma/r)^12 + (sigma/r)^6)
-
-        :return a symmetric matrix with the potential between each couple:
-                [i][j] = [j][i] is the potential between particle i and j
-                or the total potential? Many many questions
-
-                OR THE TOTAL POTENTIAL, TO DECIDE!"""
+            lj = a boolean variable that serves as a switch between Lennard Jones potential or DON'T KNOW YET THE OTHER
+            :return the total potential of the system"""
         if self._potential is None:
-            """If we want to store every pot_lj:
-            self._potential = np.zeros(self.positions().shape)
-            """
-            self._potential = 0
-            particle_number = self._positions.size
-            for i in range (particle_number):
-                neighbour = self._neighbours.get_neighbours(self._positions[i])
-                for j in range (i, particle_number):
-                    pot_lj = self._potential_lj(neighbour.nb_dist[j], self._system.sigma()[i][neighbour.nb_pos[j]])
-                    self._potential += pot_lj
-                    """Or if we want to store every pot_lj:
-                    self._potential[i][j] = self._potential[j][i] = pot_lj"""
+            if lj:
+                self._potential = 0
+                particle_number = self._positions.size
+                for i in range(particle_number):
+                    neighbour = self.neighbours().get_neighbours(self._positions[i])
+                    for j in range(i + 1, particle_number):
+                        sigma = self._system.sigma()[i][neighbour.nb_pos[j]]
+                        distance = neighbour.nb_dist[j]
+                        try:
+                            pot_lj = self._potential_lj(distance, sigma)
+                            self._potential += pot_lj
+                        except AttributeError:
+                            print("Either sigma (={}) or the distance (={}) "
+                                  "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
+            else:
+                """SPACE FOR OTHER POTENTIAL"""
         return self._potential
 
     def energy(self):
