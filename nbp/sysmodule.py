@@ -49,7 +49,7 @@ class System:
 class SystemInfo:
     """This class represents all the static information of the system
 
-    characteristic_length = L in the notes
+    characteristic_length = L in the notes, rounded up to the nearest n * cutoff_radius
     sigma: distance at which the inter-particle potential is zero
     worse_sigma: the biggest of all the sigmas
     cutoff_radius: the radius chosen to do the cutoff
@@ -60,7 +60,7 @@ class SystemInfo:
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
         self._worse_sigma = max(sigma)
-        self._cutoff_radius = self._worse_sigma * 2.5  # sigma * 2.5 is a standard approximation
+        self._cutoff_radius = self._worse_sigma * 3 # 2.5 is standard, 3 is in neighbour list
         self._epsilon0 = 1
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
