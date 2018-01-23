@@ -25,7 +25,7 @@ class Neighbours:
         # It might be possible to merge info and state into this.
         self.System = system
         self._box_length = self.SystemInfo.char_length()
-        self._skin_radius = self.SystemInfo.sigma() * 3
+        self._skin_radius = self.SystemInfo.worse_sigma() * 3
           # The 3 is just an option that mostly works (?)
         self._subcells_inrow = 1
         self._subcell_length = self._create_subcells()
