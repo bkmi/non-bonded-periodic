@@ -136,7 +136,7 @@ class SystemState:
                                               verbose=self._verbose)
         return self._neighbours
 
-    def _potential_lj(self, distance, sigma):
+    def _potential_lj(self, epsilon, distance, sigma):
         """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
         if sigma < 0:
             raise AttributeError('Sigma can\'t be smaller than zero')
@@ -145,7 +145,7 @@ class SystemState:
 
         q = (sigma / distance)**6
 
-        return 4.0 * self._system.info().epsilon() * (q * (q - 1))
+        return 4.0 * epsilon * (q * (q - 1))
 
     def potential(self, lj=True):
         """Calculates the Lennard-Jones potential between each couple of particles
@@ -159,10 +159,12 @@ class SystemState:
                 for i in range(particle_number):
                     neighbour = self.neighbours().get_neighbours(self._positions[i])
                     for j in range(i + 1, particle_number):
-                        sigma = self._system.sigma()[i][neighbour.nb_pos[j]]
+                        j_neighbour = neighbour.nb_pos[j]
+                        sigma = self._system.sigma()[i][j_neighbour]
+                        epsilon = self._system.epsilon()[i][j_neighbour]
                         distance = neighbour.nb_dist[j]
                         try:
-                            pot_lj = self._potential_lj(distance, sigma)
+                            pot_lj = self._potential_lj(epsilon, distance, sigma)
                             self._potential += pot_lj
                         except AttributeError:
                             print("Either sigma (={}) or the distance (={}) "
