@@ -136,16 +136,16 @@ class SystemState:
                                               verbose=self._verbose)
         return self._neighbours
 
-    def _potential_lj(self, distance: float, sigma: float) -> float:
+    def _potential_lj(self, distance, sigma):
         """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
-        if  sigma < 0:
+        if sigma < 0:
             raise AttributeError('Sigma can\'t be smaller than zero')
         elif distance <= 0:
             raise AttributeError('The distance can\'t be smaller than or equal zero')
 
         q = (sigma / distance)**6
 
-        return 4.0 * self._system.info().epsilon0() * (q * (q - 1))
+        return 4.0 * self._system.info().epsilon() * (q * (q - 1))
 
     def potential(self, lj=True):
         """Calculates the Lennard-Jones potential between each couple of particles
@@ -170,6 +170,17 @@ class SystemState:
             else:
                 """SPACE FOR OTHER POTENTIAL"""
         return self._potential
+
+    @property
+    def nrg(self, typ='total'):
+        if typ == 'total':
+            return self._energy() + self._potential()
+        elif typ == 'lj':
+            return self._potential()
+        elif typ == 'coulomb':
+            return self._energy()
+        else:
+            raise ValueError('The \"{}\" energy type is not understood. select one of the (total, lj, coulomb)'.format(typ))
 
     # # Ben's
     # def energy_lj(self):
