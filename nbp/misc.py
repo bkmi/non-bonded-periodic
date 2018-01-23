@@ -51,15 +51,15 @@ def wrap_pbc(positions, box_length):
     return positions
 
 
-def generate_positions(num_particles=40, box=[1, 1, 1], pbc=True):
-    """A function to generate random particle positions for a simulation system"""
-    if not np.all(box) == box[0]:
-        raise ValueError("A box with dimensions {}x{}x{} is not quadratic! Please chose a quadratic box.".format(box[0],
-                                                                                                                 box[1],
-                                                                                                                 box[2])
-                         )
-    box_len = box[0]
-    positions = np.array([multivariate_normal(box).rvs().tolist() for _ in range(num_particles)])
-    if pbc:
-        positions = wrap_pbc(positions, box_len)
-    return positions
+#def generate_positions(num_particles=40, box=[1, 1, 1], pbc=True):
+    #"""A function to generate random particle positions for a simulation system"""
+    #if not np.all(box) == box[0]:
+        #raise ValueError("A box with dimensions {}x{}x{} is not quadratic! Please chose a quadratic box.".format(box[0],
+        #                                                                                                         box[1],
+        #                                                                                                         box[2])
+        #                 )
+    #box_len = box[0]
+    #positions = np.array([multivariate_normal(box).rvs().tolist() for _ in range(num_particles)])
+    #if pbc:
+    #    positions = wrap_pbc(positions, box_len)
+    #return positions
