@@ -49,8 +49,9 @@ class System:
 class SystemInfo:
     """This class represents all the static information of the system
 
-    characteristic_length = L in the notes, rounded up to the nearest n * cutoff_radius
-    sigma: Constant related to lennard jones
+    characteristic_length = L in the notes
+    sigma: distance at which the inter-particle potential is zero
+    worse_sigma: the biggest of all the sigmas
     cutoff_radius: the radius chosen to do the cutoff
     epsilon0: physical constant
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
@@ -58,7 +59,8 @@ class SystemInfo:
 
     def __init__(self, characteristic_length, sigma, particle_charges, system):
         self._sigma = sigma
-        self._cutoff_radius = sigma * 3
+        self._worse_sigma = max(sigma)
+        self._cutoff_radius = self._worse_sigma * 2.5  # sigma * 2.5 is a standard approximation
         self._epsilon0 = 1
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
@@ -89,6 +91,11 @@ class SystemInfo:
 
     def sigma(self):
         return self._sigma
+
+    def worse_sigma(self):
+        """Returns the maximum value of all the particles' couples' sigmas"""
+        return self._worse_sigma
+
 
     def epsilon0(self):
         return self._epsilon0
@@ -129,9 +136,39 @@ class SystemState:
                                               verbose=self._verbose)
         return self._neighbours
 
-    def potential(self):
+    def _potential_lj(self, distance: float, sigma: float) -> float:
+        """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
+        if  sigma < 0:
+            raise AttributeError('Sigma can\'t be smaller than zero')
+        elif distance <= 0:
+            raise AttributeError('The distance can\'t be smaller than or equal zero')
+
+        q = (sigma / distance)**6
+
+        return 4.0 * self._system.info().epsilon0() * (q * (q - 1))
+
+    def potential(self, lj=True):
+        """Calculates the Lennard-Jones potential between each couple of particles
+
+            lj = a boolean variable that serves as a switch between Lennard Jones potential or DON'T KNOW YET THE OTHER
+            :return the total potential of the system"""
         if self._potential is None:
-            self._potential = 0
+            if lj:
+                self._potential = 0
+                particle_number = self._positions.size
+                for i in range(particle_number):
+                    neighbour = self.neighbours().get_neighbours(self._positions[i])
+                    for j in range(i + 1, particle_number):
+                        sigma = self._system.sigma()[i][neighbour.nb_pos[j]]
+                        distance = neighbour.nb_dist[j]
+                        try:
+                            pot_lj = self._potential_lj(distance, sigma)
+                            self._potential += pot_lj
+                        except AttributeError:
+                            print("Either sigma (={}) or the distance (={}) "
+                                  "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
+            else:
+                """SPACE FOR OTHER POTENTIAL"""
         return self._potential
 
     # # Ben's
@@ -163,7 +200,7 @@ class SystemState:
             L = self.system().info().char_length()
             pos = self.positions()
             nb = self.neighbours()
-            
+
             k_vectors = []
             reci_cutoff = 50  # Maybe put into system?
             for x in range(reci_cutoff):
