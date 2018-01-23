@@ -8,8 +8,10 @@ from scipy.special import erfc
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
 
-    def __init__(self, characteristic_length, sigma, particle_charges, positions):
-        self._systemInfo = SystemInfo(characteristic_length, sigma, particle_charges, self)
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+                 lj=True, ewald=True, use_neighbours=False):
+        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
+                                      lj=lj, ewald=ewald, use_neighbours=use_neighbours)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
 
@@ -57,14 +59,26 @@ class SystemInfo:
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
 
-    def __init__(self, characteristic_length, sigma, particle_charges, system):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
+                 lj=None, ewald=None, use_neighbours=None):
         self._sigma = sigma
         self._worse_sigma = max(sigma)
-        self._cutoff_radius = self._worse_sigma * 3 # 2.5 is standard, 3 is in neighbour list
+        self._cutoff_radius = self._worse_sigma * 3  # 2.5 is standard, 3 is in neighbour list
+        self._epsilon_lj = epsilon_lj
         self._epsilon0 = 1
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
+        self._lj = lj
+        self._ewald = ewald
+        self._use_neighbours = use_neighbours
+
+        if not isinstance(self._lj, bool):
+            raise TypeError('_lj must be True (on) or False (off)')
+        if not isinstance(self._ewald, bool):
+            raise TypeError('_ewald must be True (on) or False (off)')
+        if not isinstance(self._use_neighbours, bool):
+            raise TypeError('_use_neighbours must be True (on) or False (off)')
 
         if not self._cutoff_radius <= self._char_length/2:
             raise ValueError('The cutoff radius must be smaller than characteristic length divided by 2.')
@@ -96,12 +110,23 @@ class SystemInfo:
         """Returns the maximum value of all the particles' couples' sigmas"""
         return self._worse_sigma
 
-
     def epsilon0(self):
         return self._epsilon0
 
     def particle_charges(self):
         return self._particle_charges
+
+    def use_neighbours(self):
+        return self._use_neighbours
+
+    def lj(self):
+        return self._lj
+
+    def ewald(self):
+        return self._ewald
+
+    def num_particles(self):
+        return self.particle_charges().shape[0]
 
 
 class SystemState:
@@ -117,9 +142,17 @@ class SystemState:
         self._positions = np.asarray(positions)
         self._system = system
         self._neighbours = None
+
+        self._potential_lj = None
+        self._energy_lj = None
+        self._forces_lj = None
+
+        self._potential_ewald = None
+        self._energy_ewald = None
+        self._forces_ewald = None
+
         self._potential = None
         self._energy = None
-        # self._energy_lj = None
         self._forces = None
 
     def system(self):
@@ -173,16 +206,15 @@ class SystemState:
                 """SPACE FOR OTHER POTENTIAL"""
         return self._potential
 
-    @property
-    def nrg(self, typ='total'):
-        if typ == 'total':
-            return self._energy() + self._potential()
-        elif typ == 'lj':
-            return self._potential()
-        elif typ == 'coulomb':
-            return self._energy()
-        else:
-            raise ValueError('The \"{}\" energy type is not understood. select one of the (total, lj, coulomb)'.format(typ))
+    def energy_lj(self):
+        if self._energy_lj is None:
+            self._energy_lj = np.sum(self.potential_lj())
+        return self._energy_lj
+
+    def forces_lj(self):
+        if self._forces_lj is None:
+            self._forces_lj = 0
+        return self._forces_lj
 
     # # Ben's
     # def energy_lj(self):
@@ -200,12 +232,17 @@ class SystemState:
     #         self._energy_lj = energy
     #     return self._energy_lj
 
-    def energy(self):
+    def potential_ewald(self):
+        if self._potential_ewald is None:
+            self._potential_ewald = 0
+        return self._potential_ewald
+
+    def energy_ewald(self):
         # Switch on columb versus lj
 
         # take the eqns from long range ewald, sub structure factors, use eulor/symm ->
         # couple interaction between two particles via ewald -> yeilds forces. (complex square of the structure factor)
-        if self._energy is None:
+        if self._energy_ewald is None:
             V = self.system().info().volume()
             epsilon0 = self.system().info().epsilon0()
             charges = self.system().info().particle_charges()
@@ -254,11 +291,11 @@ class SystemState:
             energy_long = 1 / (V * epsilon0) * longsum
             energy_self = (2 * epsilon0 * sigma * (2 * np.pi) ** (3 / 2)) ** (-1) * np.sum(charges ** 2)
 
-            self._energy = energy_short + energy_long - energy_self
-        return self._energy
+            self._energy_ewald = energy_short + energy_long - energy_self
+        return self._energy_ewald
 
-    def forces(self):
-        if self._forces is None:
+    def forces_ewald(self):
+        if self._forces_ewald is None:
             pos = self.positions()
             charges = self.system().info().particle_charges()
             sigma = self.system().info().sigma()
@@ -310,7 +347,51 @@ class SystemState:
             for i in range(len(forces_near)):
                 forces_abs.append(forces_near[i]+forces_far[i])
 
-            self._forces = forces_abs
+            self._forces_ewald = forces_abs
+        return self._forces_ewald
+
+    def _check_lj_ewald(self, lj=None, ewald=None):
+        if lj is None:
+            lj = self._system.info().lj()
+        if ewald is None:
+            ewald = self._system.info().ewald()
+
+        if isinstance(lj, bool) or isinstance(ewald, bool):
+            raise TypeError('LJ or Ewald were not selected properly in system initialization.')
+
+        return lj, ewald
+
+    def potential(self, lj=None, ewald=None):
+        lj, ewald = self._check_lj_ewald(lj=lj, ewald=ewald)
+
+        if self._potential is None:
+            self._potential = np.zeros(self.system().info().num_particles(), 1)
+            if lj:
+                self._potential += self.potential_lj()
+            if ewald:
+                self._potential += self.potential_ewald()
+        return self._potential
+
+    def energy(self, lj=None, ewald=None):
+        lj, ewald = self._check_lj_ewald(lj=lj, ewald=ewald)
+
+        if self._energy is None:
+            self._energy = 0
+            if lj:
+                self._energy += self.energy_lj()
+            if ewald:
+                self._energy += self.energy_ewald()
+        return self._energy
+
+    def forces(self, lj=None, ewald=None):
+        lj, ewald = self._check_lj_ewald(lj=lj, ewald=ewald)
+
+        if self._forces is None:
+            self._forces = np.zeros(self.system().info().num_particles(), 3)
+            if lj:
+                self._forces += self.energy_lj()
+            if ewald:
+                self._forces += self.energy_ewald()
         return self._forces
 
 
