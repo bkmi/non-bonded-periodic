@@ -121,6 +121,8 @@ class SystemState:
         self._energy = None
         # self._energy_lj = None
         self._forces = None
+        self._energy_lj = None
+        self._distances = None
 
     def system(self):
         return self._system
@@ -136,37 +138,33 @@ class SystemState:
                                               verbose=self._verbose)
         return self._neighbours
 
-    def _potential_lj(self, distance, sigma):
-        """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
-        if sigma < 0:
-            raise AttributeError('Sigma can\'t be smaller than zero')
-        elif distance <= 0:
-            raise AttributeError('The distance can\'t be smaller than or equal zero')
-
-        q = (sigma / distance)**6
-
-        return 4.0 * self._system.info().epsilon() * (q * (q - 1))
+    def _calculate_distances(self):
+        """Creates a matrix of distances where each cell [i][j] is the distance between particle [i] and particle [j]
+        and puts such matrix in self._distance"""
+        particle_number = self._positions.size
+        self._distance = np.zeros(particle_number, particle_number)
+        for i in range(particle_number):
+            neighbour = self.neighbours().get_neighbours(self._positions[i])
+            for j in range(i + 1, particle_number):
+                self._distance[i][j] = self._distance[j][i] = neighbour.nb_dist[j]
 
     def potential(self, lj=True):
         """Calculates the Lennard-Jones potential between each couple of particles
 
             lj = a boolean variable that serves as a switch between Lennard Jones potential or DON'T KNOW YET THE OTHER
-            :return the total potential of the system"""
+            :return a symmetric matrix with the potential between each couple:
+                [i][j] = [j][i] is the potential between particle i and j"""
         if self._potential is None:
             if lj:
-                self._potential = 0
-                particle_number = self._positions.size
-                for i in range(particle_number):
-                    neighbour = self.neighbours().get_neighbours(self._positions[i])
-                    for j in range(i + 1, particle_number):
-                        sigma = self._system.sigma()[i][neighbour.nb_pos[j]]
-                        distance = neighbour.nb_dist[j]
-                        try:
-                            pot_lj = self._potential_lj(distance, sigma)
-                            self._potential += pot_lj
-                        except AttributeError:
-                            print("Either sigma (={}) or the distance (={}) "
-                                  "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
+                sigma = self._system.info().sigma()
+                epsilon = self._system.info().epsilon()
+
+                if self._distances is None:
+                    self._calculate_distances()
+
+                q = np.divide(sigma, self._distance) ** 6
+                q = np.multiply(q, q - 1)
+                self._potential = 4.0 * np.multiply(epsilon, q)
             else:
                 """SPACE FOR OTHER POTENTIAL"""
         return self._potential
