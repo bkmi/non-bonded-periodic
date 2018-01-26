@@ -2,6 +2,8 @@ from unittest import TestCase
 import numpy as np
 import nbp
 
+from .tools import make_system
+
 
 class TestSystemState(TestCase):
 

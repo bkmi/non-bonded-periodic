@@ -2,6 +2,34 @@ import numpy as np
 import math
 import collections
 
+
+def periodic_wrap(dist_arr, length, verbose=True):
+    """For a box with center at the origin."""
+    if verbose:
+        print(dist_arr)
+    for i, dx in enumerate(dist_arr):
+        if dx > length * 0.5:
+            dx = dx - length
+        elif dx <= -length * 0.5:
+            dx = dx + length
+        else:
+            continue
+        dist_arr[i] = dx
+    if verbose:
+        print(dist_arr)
+    return dist_arr
+
+
+def periodic_wrap_corner(dist_arr, length, verbose=True):
+    """For a box with lower left vertex at the origin."""
+    if verbose:
+        print(dist_arr)
+    dist_arr = dist_arr - np.around(dist_arr / length) * length
+    if verbose:
+        print(dist_arr)
+    return dist_arr
+
+
 class Neighbours:
     """
     This class is used to evaluate the position of
