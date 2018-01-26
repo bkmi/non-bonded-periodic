@@ -3,7 +3,7 @@ import math
 import collections
 
 
-def periodic_wrap(dist_arr, length, verbose=True):
+def periodic_wrap(dist_arr, length, verbose=False):
     """For a box with center at the origin."""
     if verbose:
         print(dist_arr)
@@ -20,7 +20,7 @@ def periodic_wrap(dist_arr, length, verbose=True):
     return dist_arr
 
 
-def periodic_wrap_corner(dist_arr, length, verbose=True):
+def periodic_wrap_corner(dist_arr, length, verbose=False):
     """For a box with lower left vertex at the origin."""
     if verbose:
         print(dist_arr)

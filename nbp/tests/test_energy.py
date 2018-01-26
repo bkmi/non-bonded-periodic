@@ -1,15 +1,17 @@
-import nbp
 import numpy as np
+import numpy.testing as npt
 
-from .tools import make_system
+import nbp
+from nbp.tests.tools import make_system
+
 
 def test_LJneighbours_vs_LJall():
     system = make_system(lj=True, ewald=False, use_neighbours=False)
 
     pos = system.state().positions()
-    pairwise_distance_vec = pos[None,:,:] - pos[:,None,:]
-    wrapped_pairwise_distance_vec = np.apply_along_axis(lambda x: nbp.periodic_wrap_corner(x, system.info().char_length()),
-                                                    -1, pairwise_distance_vec)
+    pairwise_distance_vec = pos[None, :, :] - pos[:, None, :]
+    wrapped_pairwise_distance_vec = np.apply_along_axis(
+        lambda x: nbp.periodic_wrap_corner(x, system.info().char_length()), -1, pairwise_distance_vec)
     wrapped_pairwise_distance = np.linalg.norm(wrapped_pairwise_distance_vec, axis=-1)
 
     lj_energy = np.zeros_like(wrapped_pairwise_distance)
@@ -21,4 +23,6 @@ def test_LJneighbours_vs_LJall():
 
     actual_energy = np.sum(np.triu(lj_energy, k=1))
 
-    assert system.state().energy() == actual_energy
+    assert npt.assert_approx_equal(actual_energy, system.state().energy(), significant=3)
+
+test_LJneighbours_vs_LJall()

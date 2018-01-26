@@ -63,9 +63,13 @@ class SystemInfo:
                  lj=None, ewald=None, use_neighbours=None):
         self._sigma = sigma
         self._worse_sigma = max(sigma)
+        self._sigma_eff = None
         self._cutoff_radius = self._worse_sigma * 3  # 2.5 is standard, 3 is in neighbour list
+
         self._epsilon_lj = epsilon_lj
+        self._epsilon_lj_eff = None
         self._epsilon0 = 1
+
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
@@ -103,6 +107,9 @@ class SystemInfo:
         """Returns the value chosen for the cutoff radius"""
         return self._cutoff_radius
 
+    def sigma_eff(self):
+        return self._sigma_eff
+
     def sigma(self):
         return self._sigma
 
@@ -112,6 +119,12 @@ class SystemInfo:
 
     def epsilon0(self):
         return self._epsilon0
+
+    def epsilon_lj(self):
+        return self._epsilon_lj
+
+    def epsilon_lj_eff(self):
+        return self.epsilon_lj_eff
 
     def particle_charges(self):
         return self._particle_charges
@@ -192,7 +205,7 @@ class SystemState:
                 for i in range(particle_number):
                     neighbour = self.neighbours().get_neighbours(self._positions[i])
                     for j in range(i + 1, particle_number):
-                        sigma = self._system.sigma()[i][neighbour.nb_pos[j]]
+                        sigma = self._system.info().sigma()[i][neighbour.nb_pos[j]]
                         distance = neighbour.nb_dist[j]
                         try:
                             pot_lj = self._potential_lj(distance, sigma)
@@ -354,13 +367,14 @@ class SystemState:
         if ewald is None:
             ewald = self._system.info().ewald()
 
-        if isinstance(lj, bool) or isinstance(ewald, bool):
+        if not (isinstance(lj, bool) or isinstance(ewald, bool)):
             raise TypeError('LJ or Ewald were not selected properly in system initialization.')
 
         return lj, ewald
 
-    def potential(self, lj=None, ewald=None):
-        lj, ewald = self._check_lj_ewald(lj=lj, ewald=ewald)
+    def potential(self):
+        lj, ewald = self._check_lj_ewald(lj=self.system().info().lj(),
+                                         ewald=self.system().info().ewald())
 
         if self._potential is None:
             self._potential = np.zeros(self.system().info().num_particles(), 1)
@@ -370,8 +384,9 @@ class SystemState:
                 self._potential += self.potential_ewald()
         return self._potential
 
-    def energy(self, lj=None, ewald=None):
-        lj, ewald = self._check_lj_ewald(lj=lj, ewald=ewald)
+    def energy(self):
+        lj, ewald = self._check_lj_ewald(lj=self.system().info().lj(),
+                                         ewald=self.system().info().ewald())
 
         if self._energy is None:
             self._energy = 0
@@ -381,8 +396,9 @@ class SystemState:
                 self._energy += self.energy_ewald()
         return self._energy
 
-    def forces(self, lj=None, ewald=None):
-        lj, ewald = self._check_lj_ewald(lj=lj, ewald=ewald)
+    def forces(self):
+        lj, ewald = self._check_lj_ewald(lj=self.system().info().lj(),
+                                         ewald=self.system().info().ewald())
 
         if self._forces is None:
             self._forces = np.zeros(self.system().info().num_particles(), 3)
