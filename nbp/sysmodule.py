@@ -10,6 +10,21 @@ class System:
 
     def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
                  lj=True, ewald=True, use_neighbours=False):
+        particle_charges = np.asarray(particle_charges)
+        sigma = np.asarray(sigma)
+        epsilon_lj = np.asarray(epsilon_lj)
+
+        if not (particle_charges.shape == sigma.shape):
+            raise ValueError('Shapes do not agree: particle_charges, sigma.')
+
+        if not (sigma.shape == epsilon_lj.shape):
+            raise ValueError('Shapes do not agree: sigma and epsilon_lj.')
+
+        positions = np.asarray(positions)
+
+        if not (positions.shape[0] == epsilon_lj.shape[0]):
+            raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
+
         self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
                                       lj=lj, ewald=ewald, use_neighbours=use_neighbours)
         self._systemStates = [SystemState(positions, self)]
@@ -61,18 +76,21 @@ class SystemInfo:
 
     def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
                  lj=None, ewald=None, use_neighbours=None):
-        self._sigma = sigma
-        self._worse_sigma = max(sigma)
-        self._sigma_eff = None
+        self._sigma = np.asarray(sigma)
+        self._worse_sigma = np.max(sigma)
+        self._sigma_eff = (np.reshape(self._sigma[None, :], -1) + np.reshape(self._sigma, -1)[:, None])/2
         self._cutoff_radius = self._worse_sigma * 3  # 2.5 is standard, 3 is in neighbour list
 
-        self._epsilon_lj = epsilon_lj
-        self._epsilon_lj_eff = None
+        self._epsilon_lj = np.asarray(epsilon_lj)
+        self._epsilon_lj_eff = np.sqrt(np.reshape(self._epsilon_lj, -1)[None, :]**2 +
+                                       np.reshape(self._epsilon_lj, -1)[:, None]**2)
         self._epsilon0 = 1
 
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
+
+        # booleans
         self._lj = lj
         self._ewald = ewald
         self._use_neighbours = use_neighbours
@@ -124,7 +142,7 @@ class SystemInfo:
         return self._epsilon_lj
 
     def epsilon_lj_eff(self):
-        return self.epsilon_lj_eff
+        return self._epsilon_lj_eff
 
     def particle_charges(self):
         return self._particle_charges
@@ -156,6 +174,9 @@ class SystemState:
         self._system = system
         self._neighbours = None
 
+        self._distance_vectors = None
+        self._distances = None
+
         self._potential_lj = None
         self._energy_lj = None
         self._forces_lj = None
@@ -176,50 +197,65 @@ class SystemState:
         SystemState.positions.shape = (num_particles, num_dimensions)"""
         return self._positions
 
+    def distance_vectors(self):
+        if self._distance_vectors is None:
+            unwrapped = self.positions()[None, :, :] - self.positions()[:, None, :]
+            wrapped = np.apply_along_axis(lambda x: nbp.periodic_wrap_corner(x, self.system().info().char_length()),
+                                          -1, unwrapped)
+            self._distance_vectors = wrapped
+        return self._distance_vectors
+
+    def distances(self):
+        if self._distances is None:
+            self._distances = np.linalg.norm(self.distance_vectors(), axis=-1)
+        return self._distances
+
     def neighbours(self):
         if self._neighbours is None:
-            self._neighbours = nbp.Neighbours(self._system.info(), self._system.state(), self.system(),
+            self._neighbours = nbp.Neighbours(self.system().info(), self.system().state(), self.system(),
                                               verbose=self._verbose)
         return self._neighbours
 
-    def _potential_lj(self, distance, sigma):
+    @staticmethod
+    def calc_potential_lj(distance, epsilon_lj, sigma):
         """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
         if sigma < 0:
             raise AttributeError('Sigma can\'t be smaller than zero')
-        elif distance <= 0:
-            raise AttributeError('The distance can\'t be smaller than or equal zero')
 
         q = (sigma / distance)**6
 
-        return 4.0 * self._system.info().epsilon_lj() * (q * (q - 1))
+        return 4.0 * epsilon_lj * (q * (q - 1))
 
-    def potential_lj(self, lj=True):
-        """Calculates the Lennard-Jones potential between each couple of particles
-
-            lj = a boolean variable that serves as a switch between Lennard Jones potential or DON'T KNOW YET THE OTHER
-            :return the total potential of the system"""
-        if self._potential is None:
-            if lj:
+    def potential_lj(self):
+        """Calculates the Lennard-Jones potential between each couple of particles"""
+        if self._potential_lj is None:
+            if self.system().info().use_neighbours():
                 self._potential = 0
                 particle_number = self._positions.size
                 for i in range(particle_number):
                     neighbour = self.neighbours().get_neighbours(self._positions[i])
                     for j in range(i + 1, particle_number):
-                        sigma = self._system.info().sigma()[i][neighbour.nb_pos[j]]
+                        sigma = self.system().info().sigma_eff()[i][neighbour.nb_pos[j]]
+                        epsilon_lj = self.system().info().epsilon_lj_eff()[i][neighbour.nb_pos[j]]
                         distance = neighbour.nb_dist[j]
                         try:
-                            pot_lj = self._potential_lj(distance, sigma)
+                            pot_lj = self.calc_potential_lj(distance, epsilon_lj, sigma)
                             self._potential += pot_lj
                         except AttributeError:
                             print("Either sigma (={}) or the distance (={}) "
                                   "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
             else:
-                """SPACE FOR OTHER POTENTIAL"""
-        return self._potential
+                out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
+                self._potential_lj = np.zeros(out_shape)
+                for i in np.ndindex(out_shape):
+                    self._potential_lj[i] = self.calc_potential_lj(self.distances()[i],
+                                                                   self.system().info().epsilon_lj_eff()[i],
+                                                                   self.system().info().sigma_eff()[i])
+        return self._potential_lj
 
     def energy_lj(self):
         if self._energy_lj is None:
-            self._energy_lj = np.sum(self.potential_lj())
+            self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
         return self._energy_lj
 
     def forces_lj(self):

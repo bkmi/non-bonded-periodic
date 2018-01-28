@@ -1,20 +1,15 @@
 import nbp
+import numpy as np
+
+from .tools import make_system
 
 
-def test_optimize():
-    characteristic_length = 10
-    sigma = 2
-    particle_charges = [1, 1]
-    positions = [[1, 1, 1], [2, 2, 2]]
-
-    system = nbp.System(characteristic_length, sigma, particle_charges, positions)
-
+def test_optimize_lj():
+    system = make_system(positions=np.asarray([[1, 1, 1], [1.5, 1, 1]]),
+                         lj=True, ewald=True, use_neighbours=False)
     mcmc = nbp.MCMC(system)
 
-    # Do a simple system where it goes directly to the lowest energy state.
-
-    if mcmc:
-        assert True is True
+    assert True is True
 
 
 def test_simulate():

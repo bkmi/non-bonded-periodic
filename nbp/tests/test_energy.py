@@ -23,6 +23,12 @@ def test_LJneighbours_vs_LJall():
 
     actual_energy = np.sum(np.triu(lj_energy, k=1))
 
-    assert npt.assert_approx_equal(actual_energy, system.state().energy(), significant=3)
+    npt.assert_approx_equal(system.state().energy(),
+                            actual_energy,
+                            significant=5)
+
+    # npt.assert_almost_equal(system.state().energy(),
+    #                         actual_energy,
+    #                         decimal=7)
 
 test_LJneighbours_vs_LJall()
