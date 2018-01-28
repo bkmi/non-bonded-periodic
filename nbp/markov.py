@@ -50,7 +50,8 @@ class Optimizer:
         else:
             raise ValueError('num_particles must be a percentage (float) or a number of particles (int).')
         particles = np.random.choice(positions.shape[0], size=num_particles, replace=False)
-        proposal_positions = positions[particles] + sp.stats.multivariate_normal(
+        proposal_positions = positions
+        proposal_positions[particles] = positions[particles] + sp.stats.multivariate_normal(
             np.zeros(3), cov * np.eye(3)).rvs(num_particles)
         proposal_state = nbp.SystemState(proposal_positions, self._system)
         return proposal_state, proposal_state.energy()
@@ -64,7 +65,7 @@ class Optimizer:
 
     def act(self, cov, num_particles=0.25):
         """Propose and check then return a new state."""
-        orig_energy = self._system.energy()
+        orig_energy = self._system.state().energy()
         self._proposal, proposal_energy = self._propose(cov, num_particles=num_particles)
         if self._check(orig_energy, proposal_energy):
             return self._proposal, proposal_energy

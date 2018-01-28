@@ -53,7 +53,7 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps, cov=None, d_energy_tol=1e-6, no_progress_break=10, num_particles=0.25):
+    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=10, num_particles=0.25):
         """Optimize the system to a lower energy level."""
         return self._MCMC.optimize(max_steps, cov=cov, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break,
                                    num_particles=num_particles)
@@ -170,12 +170,13 @@ class SystemState:
 
     def __init__(self, positions, system, verbose=False):
         self._verbose = verbose
-        self._positions = np.asarray(positions)
         self._system = system
+        self._positions = nbp.periodic_particles_stay_in_box(np.asarray(positions), self.system().info().char_length())
         self._neighbours = None
 
         self._distance_vectors = None
-        self._distances = None
+        self._distances_unwrapped = None
+        self._distances_wrapped = None
 
         self._potential_lj = None
         self._energy_lj = None
@@ -195,20 +196,33 @@ class SystemState:
     def positions(self):
         """Returns the current particle positions
         SystemState.positions.shape = (num_particles, num_dimensions)"""
+        self._positions = nbp.periodic_particles_stay_in_box(self._positions, self.system().info().char_length())
+
         return self._positions
 
-    def distance_vectors(self):
+    def distance_vectors_unwrapped(self):
         if self._distance_vectors is None:
             unwrapped = self.positions()[None, :, :] - self.positions()[:, None, :]
+            self._distance_vectors = unwrapped
+        return self._distance_vectors
+
+    def distance_vectors_wrapped(self):
+        if self._distance_vectors is None:
+            unwrapped = self.distance_vectors_unwrapped()
             wrapped = np.apply_along_axis(lambda x: nbp.periodic_wrap_corner(x, self.system().info().char_length()),
                                           -1, unwrapped)
             self._distance_vectors = wrapped
         return self._distance_vectors
 
-    def distances(self):
-        if self._distances is None:
-            self._distances = np.linalg.norm(self.distance_vectors(), axis=-1)
-        return self._distances
+    def distances_unwrapped(self):
+        if self._distances_unwrapped is None:
+            self._distances_unwrapped = np.linalg.norm(self.distance_vectors_unwrapped(), axis=-1)
+        return self._distances_unwrapped
+
+    def distances_wrapped(self):
+        if self._distances_wrapped is None:
+            self._distances_wrapped = np.linalg.norm(self.distance_vectors_wrapped(), axis=-1)
+        return self._distances_wrapped
 
     def neighbours(self):
         if self._neighbours is None:
@@ -248,7 +262,7 @@ class SystemState:
                 out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
                 self._potential_lj = np.zeros(out_shape)
                 for i in np.ndindex(out_shape):
-                    self._potential_lj[i] = self.calc_potential_lj(self.distances()[i],
+                    self._potential_lj[i] = self.calc_potential_lj(self.distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
         return self._potential_lj

@@ -3,21 +3,8 @@ import math
 import collections
 
 
-def periodic_wrap(dist_arr, length, verbose=False):
-    """For a box with center at the origin."""
-    if verbose:
-        print(dist_arr)
-    for i, dx in enumerate(dist_arr):
-        if dx > length * 0.5:
-            dx = dx - length
-        elif dx <= -length * 0.5:
-            dx = dx + length
-        else:
-            continue
-        dist_arr[i] = dx
-    if verbose:
-        print(dist_arr)
-    return dist_arr
+def periodic_particles_stay_in_box(pos_arr, length):
+    return pos_arr - np.floor(pos_arr / length) * length
 
 
 def periodic_wrap_corner(dist_arr, length, verbose=False):
