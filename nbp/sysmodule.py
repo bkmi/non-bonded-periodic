@@ -255,146 +255,144 @@ class SystemState:
 
     def energy_lj(self):
         if self._energy_lj is None:
-            self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
+            if self.system().info().use_neighbours():
+                pass
+            else:
+                self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
         return self._energy_lj
 
     def forces_lj(self):
         if self._forces_lj is None:
-            self._forces_lj = 0
+            if self.system().info().use_neighbours():
+                pass
+            else:
+                self._forces_lj = 0
         return self._forces_lj
-
-    # # Ben's
-    # def energy_lj(self):
-    #     if self._energy_lj is None:
-    #         epsilon = 1
-    #         sigma = self.system().info().sigma()
-    #         pos = self.positions()
-    #         nb = self.neighbours()
-    #
-    #         energy = 0
-    #         for particle in range(pos.shape[0]):
-    #             rs = nb.get_neighbours(pos[particle]).nb_dist
-    #             energy += np.sum(4*epsilon*((sigma/rs)**12 - (sigma/rs)**6))
-    #
-    #         self._energy_lj = energy
-    #     return self._energy_lj
 
     def potential_ewald(self):
         if self._potential_ewald is None:
-            self._potential_ewald = 0
+            if self.system().info().use_neighbours():
+                pass
+            else:
+                self._potential_ewald = 0
         return self._potential_ewald
 
     def energy_ewald(self):
         # Switch on columb versus lj
-
         # take the eqns from long range ewald, sub structure factors, use eulor/symm ->
         # couple interaction between two particles via ewald -> yeilds forces. (complex square of the structure factor)
         if self._energy_ewald is None:
-            V = self.system().info().volume()
-            epsilon0 = self.system().info().epsilon0()
-            charges = self.system().info().particle_charges()
-            sigma = self.system().info().sigma()
-            L = self.system().info().char_length()
-            pos = self.positions()
-            nb = self.neighbours()
+            if self.system().info().use_neighbours():
+                V = self.system().info().volume()
+                epsilon0 = self.system().info().epsilon0()
+                charges = self.system().info().particle_charges()
+                sigma = self.system().info().sigma()
+                L = self.system().info().char_length()
+                pos = self.positions()
+                nb = self.neighbours()
 
-            k_vectors = []
-            reci_cutoff = 50  # Maybe put into system?
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x+y+z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
+                k_vectors = []
+                reci_cutoff = 50  # Maybe put into system?
+                for x in range(reci_cutoff):
+                    for y in range(-reci_cutoff, reci_cutoff, 1):
+                        for z in range(-reci_cutoff, reci_cutoff, 1):
+                            test = x+y+z
+                            if test != 0:
+                                k = [x, y, z]
+                                k = [i * (2 * np.pi / L) for i in k]
+                                k_vectors.append(k)
 
-            # making sum for short energy
-            shortsum = 0
-            for i in range(len(pos)):
-                neighbour = nb.get_neighbours(pos[i])
-                for j in range(len(neighbour.nb_pos)):
-                    if i != j:
-                        distance = neighbour.nb_dist[j]
-                        qi = charges[i]
-                        qj = charges[neighbour.nb_pos[j]]
-                        shortsum += (qi * qj) / (distance) * sp.special.erfc(
-                            (np.linalg.norm(distance)) / (np.sqrt(2) * sigma))
-
-            # making sum for long energy
-            longsum = 0
-            structure_factor = 0
-            for x in range(len(k_vectors)):
-                k = k_vectors[x]
-                k_length = np.sqrt(k[0] ** 2 + k[1] ** 2 + k[2] ** 2)
+                # making sum for short energy
+                shortsum = 0
                 for i in range(len(pos)):
-                    q = charges[i]
-                    r = pos[i]
-                    structure_factor += 2 * q * np.cos(np.dot(k, r))
-                    # its *2 because we calc only half the k vectors (symmetry)
-                longsum += abs(structure_factor) ** 2 * np.exp(-sigma ** 2 * k_length ** 2 / 2) / k_length ** 2
+                    neighbour = nb.get_neighbours(pos[i])
+                    for j in range(len(neighbour.nb_pos)):
+                        if i != j:
+                            distance = neighbour.nb_dist[j]
+                            qi = charges[i]
+                            qj = charges[neighbour.nb_pos[j]]
+                            shortsum += (qi * qj) / (distance) * sp.special.erfc(
+                                (np.linalg.norm(distance)) / (np.sqrt(2) * sigma))
 
-            energy_short = 1 / (8 * np.pi * epsilon0) * shortsum
-            energy_long = 1 / (V * epsilon0) * longsum
-            energy_self = (2 * epsilon0 * sigma * (2 * np.pi) ** (3 / 2)) ** (-1) * np.sum(charges ** 2)
+                # making sum for long energy
+                longsum = 0
+                structure_factor = 0
+                for x in range(len(k_vectors)):
+                    k = k_vectors[x]
+                    k_length = np.sqrt(k[0] ** 2 + k[1] ** 2 + k[2] ** 2)
+                    for i in range(len(pos)):
+                        q = charges[i]
+                        r = pos[i]
+                        structure_factor += 2 * q * np.cos(np.dot(k, r))
+                        # its *2 because we calc only half the k vectors (symmetry)
+                    longsum += abs(structure_factor) ** 2 * np.exp(-sigma ** 2 * k_length ** 2 / 2) / k_length ** 2
 
-            self._energy_ewald = energy_short + energy_long - energy_self
+                energy_short = 1 / (8 * np.pi * epsilon0) * shortsum
+                energy_long = 1 / (V * epsilon0) * longsum
+                energy_self = (2 * epsilon0 * sigma * (2 * np.pi) ** (3 / 2)) ** (-1) * np.sum(charges ** 2)
+
+                self._energy_ewald = energy_short + energy_long - energy_self
+            else:
+                pass
         return self._energy_ewald
 
     def forces_ewald(self):
         if self._forces_ewald is None:
-            pos = self.positions()
-            charges = self.system().info().particle_charges()
-            sigma = self.system().info().sigma()
-            epsilon0 = self.system().info().epsilon0()
-            nb = self.neighbours()
-            L = self.system().info().char_length()
-            forces_abs = []
-            forces_near = []
-            forces_far = []
+            if self.system().info().use_neighbours():
+                pos = self.positions()
+                charges = self.system().info().particle_charges()
+                sigma = self.system().info().sigma()
+                epsilon0 = self.system().info().epsilon0()
+                nb = self.neighbours()
+                L = self.system().info().char_length()
+                forces_abs = []
+                forces_near = []
+                forces_far = []
 
-            k_vectors = []
-            reci_cutoff = 50  # Maybe put into system?
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x+y+z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
+                k_vectors = []
+                reci_cutoff = 50  # Maybe put into system?
+                for x in range(reci_cutoff):
+                    for y in range(-reci_cutoff, reci_cutoff, 1):
+                        for z in range(-reci_cutoff, reci_cutoff, 1):
+                            test = x+y+z
+                            if test != 0:
+                                k = [x, y, z]
+                                k = [i * (2 * np.pi / L) for i in k]
+                                k_vectors.append(k)
 
-            # forces resulting from short energy
-            for i in range(len(pos)):
-                neighbour = nb.get_neighbours(pos[i])
-                for j in range(len(neighbour.nb_pos)):
-                    if i != j:
-                        distance = neighbour.nb_dist[j]
-                        qi = charges[i]
-                        qj = charges[neighbour.nb_pos[j]]
-                        energy = 1 / (8 * np.pi * epsilon0) * \
-                                 (qi * qj)/distance * sp.special.erfc((np.linalg.norm(distance))/(np.sqrt(2) * sigma))
-                        force = -np.diff(energy)/distance       # not sure about that one...
-                        forces_near.append(force)
-
-            # forces resulting from long energy
-            structure_factor = 0
-            for x in range(len(k_vectors)):
-                k = k_vectors[x]
-                k_length = np.sqrt(k[0] ** 2 + k[1] ** 2 + k[2] ** 2)
+                # forces resulting from short energy
                 for i in range(len(pos)):
-                    q = charges[i]
-                    r = pos[i]
-                    structure_factor += 2 * q * np.cos(np.dot(k, r))
-                    # its *2 because we calc only half the k vectors (symmetry)
-                    energy = abs(structure_factor) ** 2 * np.exp(-sigma ** 2 * k_length ** 2 / 2) / k_length ** 2
-                    force = -np.diff(energy)/r                  # not sure about that one... again
-                    forces_far.append(force)
+                    neighbour = nb.get_neighbours(pos[i])
+                    for j in range(len(neighbour.nb_pos)):
+                        if i != j:
+                            distance = neighbour.nb_dist[j]
+                            qi = charges[i]
+                            qj = charges[neighbour.nb_pos[j]]
+                            energy = 1 / (8 * np.pi * epsilon0) * \
+                                     (qi * qj)/distance * sp.special.erfc((np.linalg.norm(distance))/(np.sqrt(2) * sigma))
+                            force = -np.diff(energy)/distance       # not sure about that one...
+                            forces_near.append(force)
 
-            for i in range(len(forces_near)):
-                forces_abs.append(forces_near[i]+forces_far[i])
+                # forces resulting from long energy
+                structure_factor = 0
+                for x in range(len(k_vectors)):
+                    k = k_vectors[x]
+                    k_length = np.sqrt(k[0] ** 2 + k[1] ** 2 + k[2] ** 2)
+                    for i in range(len(pos)):
+                        q = charges[i]
+                        r = pos[i]
+                        structure_factor += 2 * q * np.cos(np.dot(k, r))
+                        # its *2 because we calc only half the k vectors (symmetry)
+                        energy = abs(structure_factor) ** 2 * np.exp(-sigma ** 2 * k_length ** 2 / 2) / k_length ** 2
+                        force = -np.diff(energy)/r                  # not sure about that one... again
+                        forces_far.append(force)
 
-            self._forces_ewald = forces_abs
+                for i in range(len(forces_near)):
+                    forces_abs.append(forces_near[i]+forces_far[i])
+
+                self._forces_ewald = forces_abs
+            else:
+                pass
         return self._forces_ewald
 
     def _check_lj_ewald(self, lj=None, ewald=None):
@@ -458,7 +456,3 @@ class FrameAnalysis:
             given_e = self._energies
             diff = np.abs(calc_e - given_e)
             print("Frame {0} Calc_Energy {1} Given_Energy {2} Diff {3}".format(i, calc_e, given_e, diff))
-
-# distance vector
-# r in real^(N, D)
-# np.linalg.norm(r[:, None, :] - r[None, :, :], axis=2)
