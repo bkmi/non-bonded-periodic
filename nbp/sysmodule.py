@@ -62,6 +62,9 @@ class System:
         """Simulate the system at a given temperature"""
         return self._MCMC.simulate(steps=steps, temperature=temperature)
 
+    # def __str__(self):
+    #     return "System"
+
 
 class SystemInfo:
     """This class represents all the static information of the system

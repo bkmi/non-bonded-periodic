@@ -27,7 +27,7 @@ class MCMC:
     def simulate(self, steps, temperature):
         """Simulate from the last system state."""
         simulator = Simulator(self._system)
-        for i in range(steps):
+        while len(self._system.states()) < steps:
             self._system.update_state(simulator.act(temperature))
         return self._system.state()
 
@@ -80,7 +80,7 @@ class Simulator:
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to simulate"""
-        cov = 1  # TODO scale covariance
+        cov = 0.5  # TODO scale covariance
         num_particles = len(self._system.state().positions())
         indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
         proposal_state = self._metropolis(indices_toMove, cov)
@@ -91,10 +91,10 @@ class Simulator:
 
     def _check(self, state, temperature):
         """Checks for the acceptance of a proposal state"""
-        beta = 1  # TODO: Calculate beta (with dim=1) used in Boltzmann Factor
+        beta = 0.5  # TODO: Calculate beta (with dim=1) used in Boltzmann Factor
         energy_prev = self._system.states()[-1].energy()
-        energy_curr = state.energy()
-        p_acc = beta * (energy_curr - energy_prev)
+        energy_prop = state.energy()
+        p_acc = np.min((1, np.exp(beta * (energy_prop - energy_prev))))
         if np.random.random() <= p_acc:
             return True
         else:
