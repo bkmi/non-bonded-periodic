@@ -199,23 +199,11 @@ class Neighbours:
         # get distance from particle to neighbours
         for i in range(nb_length):
             index = neighbours[i]
-            x_distance = particle_pos[0] - positions[index][0]
-            y_distance = particle_pos[1] - positions[index][1]
-            z_distance = particle_pos[2] - positions[index][2]
+            x_distance = abs(particle_pos[0] - positions[index][0])
+            y_distance = abs(particle_pos[1] - positions[index][1])
+            z_distance = abs(particle_pos[2] - positions[index][2])
 
             # correct boundary subcells distance.
-            # If only 2 subcells this will be have to caught somewhere else.
-            # if self._subcells_inrow is 2:
-            #    distance = np.sqrt(x_distance ** 2 + y_distance ** 2 + z_distance ** 2)
-            #    print("Distance:", distance)
-            #    if index not in recent_neighbours:
-            #        recent_neighbours.append(index)
-            #    else:
-            #        x_distance = self._box_length - x_distance
-            #        y_distance = self._box_length - y_distance
-            #        z_distance = self._box_length - z_distance
-            # else:
-
             l = 2*self._subcell_length  # max possible distance
             if x_distance > l:
                 x_distance = self._box_length - x_distance
@@ -268,7 +256,7 @@ class Neighbours:
         for cell in range(18, 27):
             # x coordinate
             subcells_id_3d[cell][0] = math.floor((particle_pos[0]
-                                                  - self._subcell_length)
+                                                  + self._subcell_length)
                                                   / self._subcell_length)
 
         # y-coordinates:
