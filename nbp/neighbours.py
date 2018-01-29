@@ -80,7 +80,7 @@ class Neighbours:
 
         # create list (head) for starting index of subcell.
         # **3 because we have 3 dimensions for 2 it would be **2.
-        self._start_index = np.zeros(self._subcells_inrow**3)
+        self._start_index = [-1] * (self._subcells_inrow**3)
 
         # create linked neighbour list
         self._neighbour_list = [-1] * particle_number
@@ -188,7 +188,7 @@ class Neighbours:
             # print("i in loop:" , i)
             index = int(start_array[i])
 
-            while index != 0:
+            while index >= 0:
                 neighbours.append(index)
                 index = int(self._neighbour_list[index])
 
