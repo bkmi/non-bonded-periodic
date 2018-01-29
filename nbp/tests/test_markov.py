@@ -22,6 +22,8 @@ def test_optimize_lj_finds_local_minimum():
 
 
 # def test_optimize_lj_finds_tetrahedron():
+#     np.random.RandomState(6)
+#
 #     characteristic_length = 10
 #     particle_count = 4
 #     system = make_system(characteristic_length=characteristic_length,
@@ -31,13 +33,12 @@ def test_optimize_lj_finds_local_minimum():
 #                          use_neighbours=False)
 #     system.optimize()
 #
-#     tetrahedron_dist = np.array([[ 0.        ,  6.79176036,  4.16560376,  6.5014517 ],
-#                                  [ 6.79176036,  0.        ,  6.87371615,  1.84749012],
-#                                  [ 4.16560376,  6.87371615,  0.        ,  6.12528527],
-#                                  [ 6.5014517 ,  1.84749012,  6.12528527,  0.        ]])
+#     tetrahedron_dist = np.array([[ 0.,  2.,  2.,  2.],
+#                                  [ 2.,  0.,  2.,  2.],
+#                                  [ 2.,  2.,  0.,  2.],
+#                                  [ 2.,  2.,  2.,  0.]])
 #
 #     npt.assert_almost_equal(system.state().distances_wrapped(), tetrahedron_dist)
-
 
 
 def test_simulate():

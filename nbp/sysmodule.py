@@ -53,7 +53,7 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=10, num_particles=0.25):
+    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=50, num_particles=0.25):
         """Optimize the system to a lower energy level."""
         return self._MCMC.optimize(max_steps, cov=cov, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break,
                                    num_particles=num_particles)
