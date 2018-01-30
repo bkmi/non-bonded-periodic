@@ -44,7 +44,8 @@ def play_frames(system, start=None, end=None, dt=None):
         plt.pause(pausetime)
     plt.close()
 
-class EnergyPlotter:
+
+class Plotter:
     """A class for plotting energies"""
     def __init__(self, system):
         import matplotlib.pyplot as plt
@@ -52,6 +53,32 @@ class EnergyPlotter:
         self._states = self._system.states()
         self._energies = None
 
+    def plot_distribution(self):
+        pass
+
+    def plot_energies(self, typ='total'):
+        """Energy Plotting method
+        :param typ (str or int)
+            type of energy to plot;
+            'total' or 1 for total energy
+            'lj' or 2 for Lennard Jones energy
+            'coulomb' or 3 for Coulomb Energy
+        """
+        fig = plt.figure(1)
+        ax = fig.add_subplot(111)
+        self.get_energies()
+        if typ == 'total' or 1:
+            self._plot_e_tot(ax)
+            ax.label = 'Total Energy'
+            plt.show()
+        elif typ == 'lj' or 2:
+            self._plot_e_lj(ax)
+            ax.label = 'Energy LJ'#
+            plt.show()
+        elif typ == 'coulomb' or 3:
+            self._plot_e_clmb(ax)
+            ax.label = 'Energy Coulomb'
+            plt.show()
 
     def get_energies(self):
         if self._energies == None:
@@ -62,31 +89,23 @@ class EnergyPlotter:
 
     def _plot_e_clmb(self, canvas):
         canvas.plot(self._energies['coulomb'])
-        plt.show()
 
     def _plot_e_lj(self, canvas):
         canvas.plot(self._energies['lj'])
-        plt.show()
 
     def _plot_e_tot(self, canvas):
         canvas.plot(self._energies['total'])
-        plt.show()
 
-    def plot_energies(self, typ='total', start=0, end=None):
-        fig = plt.figure(1)
-        ax = fig.add_subplot(111)
-        if end == None:
-            end = len(self._states)
-        self.get_energies()
-        if typ == 'total':
-            ax.label = 'Total Energy'
-            self._plot_e_tot(ax)
-        elif typ == 'lj':
-            ax.label = 'Energy LJ'
-            self._plot_e_lj(ax)
-        elif typ == 'coulomb':
-            ax.label = 'Energy Coulomb'
-            self._plot_e_clmb(ax)
+    #TODO: add scaling for the axis
+
+    def _rdf(self):
+        pass
+
+    def _distance_distr(self):
+        pass
+
+
+
 
 
 
