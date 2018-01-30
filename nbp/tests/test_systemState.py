@@ -27,7 +27,6 @@ class TestSystemState(TestCase):
         q = (sigma / distance) **6
         q = 4.0 * system.info().epsilon0() * q * (q - 1)
         self.assertEqual(q, system.state()._potential_lj(distance, sigma))"""
-
     def test_potential(self):
         """TODO Problems in neighbours before the potential itself is called"""
         self.assertTrue()
