@@ -41,7 +41,7 @@ class Neighbours:
         self.System = system
         self._box_length = self.SystemInfo.char_length()
         self._skin_radius = self.SystemInfo.worse_sigma() * 3
-          # The 3 is just an option that mostly works (?)
+        # The 3 is just an option that mostly works (?)
         self._subcells_inrow = 1
         self._subcell_length = self._create_subcells()
         self._neighbour_list = self._create_neighbours()
