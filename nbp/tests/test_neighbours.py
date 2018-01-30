@@ -1,15 +1,7 @@
 import nbp
 import numpy as np
 
-
-def make_system():
-    box_length = 10
-    sigma = 0.5
-    particle_count = 50
-    random_positions = box_length * np.random.rand(particle_count, 3)
-    random_charges = np.random.rand(particle_count, 1)
-    system = nbp.System(box_length, sigma, random_charges, random_positions)
-    return system
+from .tools import make_system
 
 
 def test_no_self_in_neighbours():
