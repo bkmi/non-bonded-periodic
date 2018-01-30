@@ -1,22 +1,46 @@
 import nbp
+import numpy as np
+import numpy.testing as npt
+
+from .tools import make_system
 
 
-def test_optimize():
-    characteristic_length = 10
-    sigma = 2
-    particle_charges = [1, 1]
-    positions = [[1, 1, 1], [2, 2, 2]]
+def test_optimize_lj_finds_local_minimum():
+    characteristic_length = 20
+    particle_count = 10
+    system = make_system(characteristic_length=characteristic_length,
+                         particle_count=particle_count,
+                         lj=True,
+                         ewald=False,
+                         use_neighbours=False)
+    system.optimize()
 
-    system = nbp.System(characteristic_length, sigma, particle_charges, positions)
+    e_last_except_extreme = np.asarray([system.states()[i].energy() for i in range(-2, -5, -1)])
+    e_last_extreme = np.ones_like(e_last_except_extreme) * system.state().energy()
 
-    mcmc = nbp.MCMC(system)
+    npt.assert_almost_equal(e_last_except_extreme, e_last_extreme)
 
-    # Do a simple system where it goes directly to the lowest energy state.
 
-    if mcmc:
-        assert True is True
+# def test_optimize_lj_finds_tetrahedron():
+#     np.random.RandomState(6)
+#
+#     characteristic_length = 10
+#     particle_count = 4
+#     system = make_system(characteristic_length=characteristic_length,
+#                          particle_count=particle_count,
+#                          lj=True,
+#                          ewald=False,
+#                          use_neighbours=False)
+#     system.optimize()
+#
+#     tetrahedron_dist = np.array([[ 0.,  2.,  2.,  2.],
+#                                  [ 2.,  0.,  2.,  2.],
+#                                  [ 2.,  2.,  0.,  2.],
+#                                  [ 2.,  2.,  2.,  0.]])
+#
+#     npt.assert_almost_equal(system.state().distances_wrapped(), tetrahedron_dist)
 
 
 def test_simulate():
     # Compare two particle monte carlo to two particle mcmc.
-    assert True is True
+    pass

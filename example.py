@@ -1,13 +1,33 @@
 import nbp
 import numpy as np
 
-# Example using LJ potential only1
+from nbp.tests.tools import make_system
 
-characteristic_length = 20
-sigma = 0
-particle_charges = np.asarray([1, 1, 1])
-positions = np.asarray([[1, 1, 1], [2,2,2], [4,5,10]])
+# Example using LJ potential only
+# characteristic_length = 10
+# particle_count = 4
+# system = make_system(characteristic_length=characteristic_length,
+#                      particle_count=particle_count,
+#                      lj=True,
+#                      ewald=False,
+#                      use_neighbours=False)
+# system.optimize()
 
-a = nbp.System(characteristic_length, sigma, particle_charges, positions)
-a.state().energy()
-print(a.state().energy())
+# blah
+
+# np.random.RandomState(6)
+characteristic_length = 10
+positions = (np.asarray([[1, 0, -2**(-1/2)],
+                        [-1, 0, -2**(-1/2)],
+                        [0, 1, 2**(-1/2)],
+                        [0, -1, 2**(-1/2)]]) + 5) * 1.5
+system = make_system(characteristic_length=characteristic_length,
+                     positions=positions,
+                     lj=True,
+                     ewald=False,
+                     use_neighbours=False)
+system.optimize(num_particles=4)
+print(len(system.states()))
+print(system.state().distances_unwrapped())
+print(system.state().distances_wrapped())
+print(system.state().positions())
