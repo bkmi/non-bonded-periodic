@@ -28,7 +28,7 @@ system = make_system(characteristic_length=characteristic_length,
                      use_neighbours=False)
 system.optimize(cov=system.info().cutoff()/24,
                 num_particles=4)
-print(len(system.states())
+print(len(system.states()))
 print(system.state().distances_unwrapped())
 system.optimize(cov=system.info().cutoff()/2**8,
                 num_particles=4)
