@@ -38,7 +38,7 @@ def test_optimize_lj_finds_local_minimum():
 #                                  [ 2.,  2.,  0.,  2.],
 #                                  [ 2.,  2.,  2.,  0.]])
 #
-#     npt.assert_almost_equal(system.state().distances_wrapped(), tetrahedron_dist)
+#     npt.assert_almost_equal(system.state().distance().distances_wrapped(), tetrahedron_dist)
 
 
 def test_simulate():

@@ -14,6 +14,8 @@ markov
 
 neighbours
 
+distance
+
 sysmodule
 
 unitconvert
@@ -22,4 +24,5 @@ unitconvert
 from .markov import *
 from .neighbours import *
 from .sysmodule import *
+from .distance import *
 from .unitconvert import *
