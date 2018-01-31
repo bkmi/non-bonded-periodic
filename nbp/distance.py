@@ -3,18 +3,21 @@ import nbp
 
 
 class Distance:
-
-    def __init__(self, positions, system):
-
+    def __init__(self, system):
         self._distance_vectors = None
         self._distances_unwrapped = None
         self._distances_wrapped = None
         self._system = system
-        self._positions = nbp.periodic_particles_stay_in_box(np.asarray(positions), self._system.info().char_length())
+
+    def system(self):
+        return self._system
+
+    def positions(self):
+        return self.system().state().positions()
 
     def distance_vectors_unwrapped(self):
         if self._distance_vectors is None:
-            unwrapped = self._positions()[None, :, :] - self._positions()[:, None, :]
+            unwrapped = self.positions()[None, :, :] - self.positions()[:, None, :]
             self._distance_vectors = unwrapped
         return self._distance_vectors
 
@@ -35,4 +38,3 @@ class Distance:
         if self._distances_wrapped is None:
             self._distances_wrapped = np.linalg.norm(self.distance_vectors_wrapped(), axis=-1)
         return self._distances_wrapped
-

@@ -53,14 +53,14 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=50, num_particles=0.25):
+    # def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.25):
+    def optimize(self, *args, **kwargs):
         """Optimize the system to a lower energy level."""
-        return self._MCMC.optimize(max_steps, cov=cov, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break,
-                                   num_particles=num_particles)
+        return self._MCMC.optimize(*args, **kwargs)
 
-    def simulate(self, steps, temperature):
+    def simulate(self, *args, **kwargs):
         """Simulate the system at a given temperature"""
-        return self._MCMC.simulate(steps=steps, temperature=temperature)
+        return self._MCMC.simulate(*args, **kwargs)
 
 
 class SystemInfo:
@@ -212,8 +212,8 @@ class SystemState:
         Initialize class distance for later use.
         :return: instance of class Distance
         """
-        self._distance = nbp.Distance(self.positions(), self.system())
-
+        if self._distance is None:
+            self._distance = nbp.Distance(self.system())
         return self._distance
 
     @staticmethod
