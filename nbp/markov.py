@@ -27,7 +27,7 @@ class MCMC:
     def simulate(self, steps, temperature):
         """Simulate from the last system state."""
         simulator = Simulator(self._system)
-        while len(self._system.states()) < steps:
+        for i in range(steps):
             self._system.update_state(simulator.act(temperature))
         return self._system.state()
 
@@ -80,7 +80,7 @@ class Simulator:
 
     def act(self, temperature):
         """Overriding of the function act of the Actor in order for it to simulate"""
-        cov = 0.5  # TODO scale covariance
+        cov = self._system.info().cutoff()
         num_particles = len(self._system.state().positions())
         indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
         proposal_state = self._metropolis(indices_toMove, cov)
