@@ -41,7 +41,7 @@ class Neighbours:
         self.System = system
         self._box_length = self.SystemInfo.char_length()
         self._skin_radius = self.SystemInfo.worse_sigma() * 3
-          # The 3 is just an option that mostly works (?)
+        # The 3 is just an option that mostly works (?)
         self._subcells_inrow = 1
         self._subcell_length = self._create_subcells()
         self._neighbour_list = self._create_neighbours()
@@ -80,7 +80,7 @@ class Neighbours:
 
         # create list (head) for starting index of subcell.
         # **3 because we have 3 dimensions for 2 it would be **2.
-        self._start_index = np.zeros(self._subcells_inrow**3)
+        self._start_index = [-1] * (self._subcells_inrow**3)
 
         # create linked neighbour list
         self._neighbour_list = [-1] * particle_number
@@ -188,7 +188,7 @@ class Neighbours:
             # print("i in loop:" , i)
             index = int(start_array[i])
 
-            while index != 0:
+            while index >= 0:
                 neighbours.append(index)
                 index = int(self._neighbour_list[index])
 
@@ -199,23 +199,11 @@ class Neighbours:
         # get distance from particle to neighbours
         for i in range(nb_length):
             index = neighbours[i]
-            x_distance = particle_pos[0] - positions[index][0]
-            y_distance = particle_pos[1] - positions[index][1]
-            z_distance = particle_pos[2] - positions[index][2]
+            x_distance = abs(particle_pos[0] - positions[index][0])
+            y_distance = abs(particle_pos[1] - positions[index][1])
+            z_distance = abs(particle_pos[2] - positions[index][2])
 
             # correct boundary subcells distance.
-            # If only 2 subcells this will be have to caught somewhere else.
-            # if self._subcells_inrow is 2:
-            #    distance = np.sqrt(x_distance ** 2 + y_distance ** 2 + z_distance ** 2)
-            #    print("Distance:", distance)
-            #    if index not in recent_neighbours:
-            #        recent_neighbours.append(index)
-            #    else:
-            #        x_distance = self._box_length - x_distance
-            #        y_distance = self._box_length - y_distance
-            #        z_distance = self._box_length - z_distance
-            # else:
-
             l = 2*self._subcell_length  # max possible distance
             if x_distance > l:
                 x_distance = self._box_length - x_distance
@@ -268,7 +256,7 @@ class Neighbours:
         for cell in range(18, 27):
             # x coordinate
             subcells_id_3d[cell][0] = math.floor((particle_pos[0]
-                                                  - self._subcell_length)
+                                                  + self._subcell_length)
                                                   / self._subcell_length)
 
         # y-coordinates:
