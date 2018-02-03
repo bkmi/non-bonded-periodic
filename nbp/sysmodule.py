@@ -53,14 +53,14 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=50, num_particles=0.25):
+    # def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.25):
+    def optimize(self, *args, **kwargs):
         """Optimize the system to a lower energy level."""
-        return self._MCMC.optimize(max_steps, cov=cov, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break,
-                                   num_particles=num_particles)
+        return self._MCMC.optimize(*args, **kwargs)
 
-    def simulate(self, steps, temperature):
+    def simulate(self, *args, **kwargs):
         """Simulate the system at a given temperature"""
-        return self._MCMC.simulate(steps=steps, temperature=temperature)
+        return self._MCMC.simulate(*args, **kwargs)
 
 
 class SystemInfo:
@@ -173,10 +173,7 @@ class SystemState:
         self._system = system
         self._positions = nbp.periodic_particles_stay_in_box(np.asarray(positions), self.system().info().char_length())
         self._neighbours = None
-
-        self._distance_vectors = None
-        self._distances_unwrapped = None
-        self._distances_wrapped = None
+        self._distance = None
 
         self._potential_lj = None
         self._energy_lj = None
@@ -200,35 +197,24 @@ class SystemState:
 
         return self._positions
 
-    def distance_vectors_unwrapped(self):
-        if self._distance_vectors is None:
-            unwrapped = self.positions()[None, :, :] - self.positions()[:, None, :]
-            self._distance_vectors = unwrapped
-        return self._distance_vectors
-
-    def distance_vectors_wrapped(self):
-        if self._distance_vectors is None:
-            unwrapped = self.distance_vectors_unwrapped()
-            wrapped = np.apply_along_axis(lambda x: nbp.periodic_wrap_corner(x, self.system().info().char_length()),
-                                          -1, unwrapped)
-            self._distance_vectors = wrapped
-        return self._distance_vectors
-
-    def distances_unwrapped(self):
-        if self._distances_unwrapped is None:
-            self._distances_unwrapped = np.linalg.norm(self.distance_vectors_unwrapped(), axis=-1)
-        return self._distances_unwrapped
-
-    def distances_wrapped(self):
-        if self._distances_wrapped is None:
-            self._distances_wrapped = np.linalg.norm(self.distance_vectors_wrapped(), axis=-1)
-        return self._distances_wrapped
-
     def neighbours(self):
+        """
+        Create or return an instance of the class Neighbours.
+        :return: Instance of neighbours
+        """
         if self._neighbours is None:
             self._neighbours = nbp.Neighbours(self.system().info(), self.system().state(), self.system(),
                                               verbose=self._verbose)
         return self._neighbours
+
+    def distance(self):
+        """
+        Initialize class distance for later use.
+        :return: instance of class Distance
+        """
+        if self._distance is None:
+            self._distance = nbp.Distance(self.system())
+        return self._distance
 
     @staticmethod
     def calc_potential_lj(distance, epsilon, sigma):
@@ -265,7 +251,7 @@ class SystemState:
                 out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
                 self._potential_lj = np.zeros(out_shape)
                 for i in np.ndindex(out_shape):
-                    self._potential_lj[i] = self.calc_potential_lj(self.distances_wrapped()[i],
+                    self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
         return self._potential_lj

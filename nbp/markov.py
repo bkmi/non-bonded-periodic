@@ -9,7 +9,7 @@ class MCMC:
     def __init__(self, system):
         self._system = system
 
-    def optimize(self, max_steps, cov=None, d_energy_tol=1e-6, no_progress_break=50, num_particles=0.25):
+    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.25):
         """Optimize from the last system state."""
         optimizer = Optimizer(self._system)
         energies = []
