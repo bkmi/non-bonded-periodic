@@ -259,6 +259,7 @@ class SystemState:
                 q = np.divide(sigma, self._distance) ** 6
                 q = np.multiply(q, q - 1)
                 self._potential = 4.0 * np.multiply(epsilon, q)
+
     @staticmethod
     def calc_potential_lj(distance, epsilon_lj, sigma):
         """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
