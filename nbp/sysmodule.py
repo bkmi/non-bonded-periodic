@@ -53,14 +53,14 @@ class System:
         """Gives all the dynamic information about the system"""
         return self._systemStates
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=50, num_particles=0.25):
+    # def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.25):
+    def optimize(self, *args, **kwargs):
         """Optimize the system to a lower energy level."""
-        return self._MCMC.optimize(max_steps, cov=cov, d_energy_tol=d_energy_tol, no_progress_break=no_progress_break,
-                                   num_particles=num_particles)
+        return self._MCMC.optimize(*args, **kwargs)
 
-    def simulate(self, steps, temperature):
+    def simulate(self, *args, **kwargs):
         """Simulate the system at a given temperature"""
-        return self._MCMC.simulate(steps=steps, temperature=temperature)
+        return self._MCMC.simulate(*args, **kwargs)
 
 
 class SystemInfo:
@@ -173,10 +173,8 @@ class SystemState:
         self._system = system
         self._positions = nbp.periodic_particles_stay_in_box(np.asarray(positions), self.system().info().char_length())
         self._neighbours = None
-
-        self._distance_vectors = None
-        self._distances_unwrapped = None
-        self._distances_wrapped = None
+        self._distance = None
+        self._neighbours_distances = None
 
         self._potential_lj = None
         self._energy_lj = None
@@ -189,8 +187,19 @@ class SystemState:
         self._potential = None
         self._energy = None
         self._forces = None
-        self._energy_lj = None
-        self._distances = None
+
+    def _neighbours_distances(self):
+        """Calculates all the distances between the particles using the neighbouurhood"""
+        if self._neighbours_distances is None:
+
+            particle_number = self._positions.size
+            self._neighbours_distances = np.zeros(particle_number, particle_number)
+            for i in range(particle_number):
+                neighbour = self.neighbours().get_neighbours(self._positions[i])
+                for j in range(i + 1, particle_number):
+                    self._neighbours_distances[i][j] = self._distance[j][i] = neighbour.nb_dist[j]
+
+        return self._neighbours_distances
 
     def system(self):
         return self._system
@@ -202,99 +211,38 @@ class SystemState:
 
         return self._positions
 
-    def distance_vectors_unwrapped(self):
-        if self._distance_vectors is None:
-            unwrapped = self.positions()[None, :, :] - self.positions()[:, None, :]
-            self._distance_vectors = unwrapped
-        return self._distance_vectors
-
-    def distance_vectors_wrapped(self):
-        if self._distance_vectors is None:
-            unwrapped = self.distance_vectors_unwrapped()
-            wrapped = np.apply_along_axis(lambda x: nbp.periodic_wrap_corner(x, self.system().info().char_length()),
-                                          -1, unwrapped)
-            self._distance_vectors = wrapped
-        return self._distance_vectors
-
-    def distances_unwrapped(self):
-        if self._distances_unwrapped is None:
-            self._distances_unwrapped = np.linalg.norm(self.distance_vectors_unwrapped(), axis=-1)
-        return self._distances_unwrapped
-
-    def distances_wrapped(self):
-        if self._distances_wrapped is None:
-            self._distances_wrapped = np.linalg.norm(self.distance_vectors_wrapped(), axis=-1)
-        return self._distances_wrapped
-
     def neighbours(self):
+        """
+        Create or return an instance of the class Neighbours.
+        :return: Instance of neighbours
+        """
         if self._neighbours is None:
             self._neighbours = nbp.Neighbours(self.system().info(), self.system().state(), self.system(),
                                               verbose=self._verbose)
         return self._neighbours
 
-    def _calculate_distances(self):
-        """Creates a matrix of distances where each cell [i][j] is the distance between particle [i] and particle [j]
-        and puts such matrix in self._distance"""
-        particle_number = self._positions.size
-        self._distance = np.zeros(particle_number, particle_number)
-        for i in range(particle_number):
-            neighbour = self.neighbours().get_neighbours(self._positions[i])
-            for j in range(i + 1, particle_number):
-                self._distance[i][j] = self._distance[j][i] = neighbour.nb_dist[j]
-
-    def potential(self, lj=True):
-        """Calculates the Lennard-Jones potential between each couple of particles
-
-            lj = a boolean variable that serves as a switch between Lennard Jones potential or DON'T KNOW YET THE OTHER
-            :return a symmetric matrix with the potential between each couple:
-                [i][j] = [j][i] is the potential between particle i and j"""
-        if self._potential is None:
-            if lj:
-                sigma = self._system.info().sigma()
-                epsilon = self._system.info().epsilon()
-
-                if self._distances is None:
-                    self._calculate_distances()
-
-                q = np.divide(sigma, self._distance) ** 6
-                q = np.multiply(q, q - 1)
-                self._potential = 4.0 * np.multiply(epsilon, q)
-
-    @staticmethod
-    def calc_potential_lj(distance, epsilon_lj, sigma):
-        """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
-        if sigma < 0:
-            raise AttributeError('Sigma can\'t be smaller than zero')
-
-        q = (sigma / distance)**6
-
-        return 4.0 * epsilon_lj * (q * (q - 1))
+    def distance(self):
+        """
+        Initialize class distance for later use.
+        :return: instance of class Distance
+        """
+        if self._distance is None:
+            self._distance = nbp.Distance(self.system())
+        return self._distance
 
     def potential_lj(self):
         """Calculates the Lennard-Jones potential between each couple of particles"""
         if self._potential_lj is None:
+
             if self.system().info().use_neighbours():
-                self._potential = 0
-                particle_number = self._positions.size
-                for i in range(particle_number):
-                    neighbour = self.neighbours().get_neighbours(self._positions[i])
-                    for j in range(i + 1, particle_number):
-                        sigma = self.system().info().sigma_eff()[i][neighbour.nb_pos[j]]
-                        epsilon_lj = self.system().info().epsilon_lj_eff()[i][neighbour.nb_pos[j]]
-                        distance = neighbour.nb_dist[j]
-                        try:
-                            pot_lj = self.calc_potential_lj(distance, epsilon_lj, sigma)
-                            self._potential += pot_lj
-                        except AttributeError:
-                            print("Either sigma (={}) or the distance (={}) "
-                                  "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
+                distances_matrix = self._neighbours_distances()
             else:
-                out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
-                self._potential_lj = np.zeros(out_shape)
-                for i in np.ndindex(out_shape):
-                    self._potential_lj[i] = self.calc_potential_lj(self.distances_wrapped()[i],
-                                                                   self.system().info().epsilon_lj_eff()[i],
-                                                                   self.system().info().sigma_eff()[i])
+                distances_matrix = self.distance().distances_wrapped()
+
+            q = np.divide(self._system.info().sigma(), distances_matrix) ** 6
+            q = np.multiply(q, q - 1)
+            self._potential = 4.0 * np.multiply(self._system.info().epsilon(), q)
+
         return self._potential_lj
 
     def energy_lj(self):
