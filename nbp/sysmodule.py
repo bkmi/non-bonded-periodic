@@ -241,7 +241,7 @@ class SystemState:
 
             q = np.divide(self._system.info().sigma(), distances_matrix) ** 6
             q = np.multiply(q, q - 1)
-            self._potential = 4.0 * np.multiply(self._system.info().epsilon(), q)
+            self._potential = 4.0 * np.multiply(self._system.info().epsilon_lj(), q)
 
         return self._potential_lj
 
@@ -270,7 +270,7 @@ class SystemState:
         return self._potential_ewald
 
     def energy_ewald(self):
-        # Switch on columb versus lj
+        # Switch on coloumb versus lj
         # take the eqns from long range ewald, sub structure factors, use eulor/symm ->
         # couple interaction between two particles via ewald -> yeilds forces. (complex square of the structure factor)
         if self._energy_ewald is None:
