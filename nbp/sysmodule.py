@@ -219,10 +219,10 @@ class SystemState:
     @staticmethod
     def calc_potential_lj(distance, epsilon, sigma):
         """Calculates the potential between a couple of particles with a certain distance and a set sigma"""
-        if sigma < 0:
-            raise AttributeError('Sigma can\'t be smaller than zero')
-        elif distance <= 0:
-            raise AttributeError('The distance can\'t be smaller than or equal zero')
+        # if sigma < 0:
+        #     raise AttributeError('Sigma can\'t be smaller than zero')
+        # elif distance <= 0:
+        #     raise AttributeError('The distance can\'t be smaller than or equal zero')
 
         q = (sigma / distance)**6
 
@@ -241,12 +241,12 @@ class SystemState:
                         sigma = self.system().info().sigma_eff()[i][j_neighbour]
                         epsilon = self.system().info().epsilon_lj_eff()[i][j_neighbour]
                         distance = neighbour.nb_dist[j]
-                        try:
-                            pot_lj = self.calc_potential_lj(distance, epsilon, sigma)
-                            self._potential += pot_lj
-                        except AttributeError:
-                            print("Either sigma (={}) or the distance (={}) "
-                                  "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
+                        # try:
+                        pot_lj = self.calc_potential_lj(distance, epsilon, sigma)
+                        self._potential += pot_lj
+                        # except AttributeError:
+                        #     print("Either sigma (={}) or the distance (={}) "
+                        #           "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
             else:
                 out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
                 self._potential_lj = np.zeros(out_shape)
