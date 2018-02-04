@@ -239,6 +239,9 @@ class SystemState:
             else:
                 distances_matrix = self.distance().distances_wrapped()
 
+            if self.system().info().num_particles() == 1:
+                return [0]
+
             q = np.divide(self._system.info().sigma(), distances_matrix) ** 6
             q = np.multiply(q, q - 1)
             self._potential = 4.0 * np.multiply(self._system.info().epsilon_lj(), q)
