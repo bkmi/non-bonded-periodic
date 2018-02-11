@@ -13,10 +13,10 @@ def test_optimize_lj_finds_local_minimum():
                          lj=True,
                          ewald=False,
                          use_neighbours=False)
-    system.optimize()
+    opt_sys = system.optimize(drop_intermediate_states=False)
 
-    e_last_except_extreme = np.asarray([system.states()[i].energy() for i in range(-2, -5, -1)])
-    e_last_extreme = np.ones_like(e_last_except_extreme) * system.state().energy()
+    e_last_except_extreme = np.asarray([opt_sys.states()[i].energy() for i in range(-2, -5, -1)])
+    e_last_extreme = np.ones_like(e_last_except_extreme) * opt_sys.state().energy()
 
     npt.assert_almost_equal(e_last_except_extreme, e_last_extreme)
 
