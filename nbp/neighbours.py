@@ -212,8 +212,9 @@ class Neighbours:
             if z_distance > l:
                 z_distance = self._box_length - z_distance
 
+            distance_3d = np.array([x_distance, y_distance, z_distance])
 
-            distance = np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
+            distance = np.linalg.norm(distance_3d)
             # print("distance: ", distance)
             # distance no further than cutoff radius:
             if 0 < distance <= self.SystemInfo.cutoff():
