@@ -32,7 +32,7 @@ def test_no_self_in_neighbours():
 
     self_in_neighbours = []
     for particle, position in enumerate(system.state().positions()):
-        result = system.state().neighbours().get_neighbours(position)
+        result = system.state().neighbours().get_neighbours(particle)
         if particle in result.nb_ID:
             self_in_neighbours.append(True)
         else:
@@ -51,8 +51,7 @@ def test_communicativity():
         print('Neighbours of particle {0}: {1}'.format(particle, nb_ID))
         print('Distances from particle {0}: {1}'.format(particle, nb_dist))
         for neighbour_index, neighbour in enumerate(nb_ID):
-            neighbour_result = system.state().neighbours().get_neighbours(
-                system.state().positions()[neighbour])
+            neighbour_result = system.state().neighbours().get_neighbours(neighbour)
             neighbour_neighbours = neighbour_result.nb_ID
             neighbour_dist = neighbour_result.nb_dist
             print('Neighbours of particle {0}: {1}'.format(neighbour, neighbour_neighbours))
