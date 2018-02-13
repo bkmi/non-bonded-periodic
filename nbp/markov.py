@@ -79,10 +79,15 @@ class Simulator:
         self._system = system
 
     def act(self, temperature):
-        """Overriding of the function act of the Actor in order for it to simulate"""
+        """
+        A method for returning proposal states in the MCMC
+            :parameter: temperature (float)
+                temperature in Kelvin [K]
+        """
         cov = self._system.info().cutoff()
         num_particles = len(self._system.state().positions())
-        indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
+        indices_toMove = np.random.choice(np.arange(num_particles), size=int(np.ceil((0.1*num_particles))))
+        # indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
         proposal_state = self._metropolis(indices_toMove, cov)
         if self._check(proposal_state, temperature):
             return proposal_state
@@ -90,9 +95,13 @@ class Simulator:
             return self._system.state()
 
     def _check(self, state, temperature):
-        """Checks for the acceptance of a proposal state"""
-        beta = 0.5  # TODO: Calculate beta (with dim=1) used in Boltzmann Factor
-        energy_prev = self._system.states()[-1].energy()
+        """
+        A method for checking for the acceptance of the proposed state
+            :parameter: state (obj)
+            :parameter: temperature (float)
+        """
+        beta = 1/(8.6173303e-5 * temperature)
+        energy_prev = self._system.state().energy()
         energy_prop = state.energy()
         p_acc = np.min((1, np.exp(beta * (energy_prop - energy_prev))))
         if np.random.random() <= p_acc:
@@ -102,7 +111,7 @@ class Simulator:
 
     def _metropolis(self, indices, cov):
         """Proposes the new states"""
-        new_positions = np.copy(self._system.state().positions())
+        new_positions = np.copy(self._system.states()[-1].positions())
         new_positions[indices] = np.array(
             [sp.stats.multivariate_normal(each, cov=cov).rvs().tolist() for each in new_positions[indices]])
         proposal_state = nbp.SystemState(new_positions, self._system)

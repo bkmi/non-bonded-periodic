@@ -45,18 +45,25 @@ def play_frames(system, start=None, end=None, dt=None):
     plt.close()
 
 
-class Plotter:
-    """A class for plotting energies"""
+class Analyser:
+    """A class for the Analysis of the system states"""
+
     def __init__(self, system):
         import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
         self._system = system
         self._states = self._system.states()
-        self._energies = None
+        self._rdf = None
 
-    def plot_distribution(self):
-        pass
+    def plot_distribution(self, typ=None, save=False, fmt=None, **kwargs):
+        """A method for plotting distributions"""
+        if not typ:
+            raise ValueError("Please specify a type of distribution to be plotted")
+        if typ == 'rdf':
+            if not self._rdf:
+                pass
 
-    def plot_energies(self, typ='total'):
+    def plot_energy(self, typ='total', save=False, fmt=None, **kwargs):
         """Energy Plotting method
         :param typ (str or int)
             type of energy to plot;
@@ -64,37 +71,36 @@ class Plotter:
             'lj' or 2 for Lennard Jones energy
             'coulomb' or 3 for Coulomb Energy
         """
-        fig = plt.figure(1)
-        ax = fig.add_subplot(111)
-        self.get_energies()
+        energy = self._get_energy(typ)
+        figure, axes = self._setup_figure()
+
+
+
+    def _get_energy(self, typ):
+        """private method for getting the requested type of energy"""
         if typ == 'total' or 1:
-            self._plot_e_tot(ax)
-            ax.label = 'Total Energy'
-            plt.show()
+            return list(map(lambda x: x.energy))
         elif typ == 'lj' or 2:
-            self._plot_e_lj(ax)
-            ax.label = 'Energy LJ'#
+            return list(map(lambda x: x.energy_lj))
             plt.show()
         elif typ == 'coulomb' or 3:
-            self._plot_e_clmb(ax)
-            ax.label = 'Energy Coulomb'
+            return list(map(lambda x: x.energy_ewald))
             plt.show()
 
-    def get_energies(self):
-        if self._energies == None:
-            self._energies = dict()
-            self._energies['total'] = list(map(lambda x: x.energy(), self._states))
-            self._energies['lj'] = list(map(lambda x: x.energy_lj(), self._states))
-            self._energies['coulomb'] = list(map(lambda x: x.energy_ewald(), self._states))
+    def _setup_figure(*args, **kwargs):
+        """Private method that takes care of the figure creation, setting the title, axes, and labels"""
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        return fig, ax
 
-    def _plot_e_clmb(self, canvas):
-        canvas.plot(self._energies['coulomb'])
+    def _plot_e_clmb(self):
+        pass
 
-    def _plot_e_lj(self, canvas):
-        canvas.plot(self._energies['lj'])
+    def _plot_e_lj(self):
+        pass
 
-    def _plot_e_tot(self, canvas):
-        canvas.plot(self._energies['total'])
+    def _plot_e_tot(self):
+        pass
 
     #TODO: add scaling for the axis
 
