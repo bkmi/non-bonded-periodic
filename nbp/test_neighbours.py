@@ -33,7 +33,7 @@ def test_no_self_in_neighbours():
 
     self_in_neighbours = []
     for particle, position in enumerate(system.state().positions()):
-        result = system.state().neighbours().get_neighbours(position)
+        result = system.state().neighbours().get_neighbours(particle)
         if particle in result.nb_ID:
             self_in_neighbours.append(True)
         else:
