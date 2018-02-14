@@ -219,6 +219,18 @@ class SystemInfo:
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
 
+        # k vectors
+        self._k_vectors = []
+        reci_cutoff = 10
+        for x in range(reci_cutoff):
+            for y in range(-reci_cutoff, reci_cutoff, 1):
+                for z in range(-reci_cutoff, reci_cutoff, 1):
+                    test = x + y + z
+                    if test != 0:
+                        k = [x, y, z]
+                        k = [i * (2 * np.pi / self._char_length) for i in k]
+                        self._k_vectors.append(k)
+
         # booleans
         self._lj = lj
         self._ewald = ewald
@@ -297,6 +309,9 @@ class SystemInfo:
         :return float
                 epsilon"""
         return self._epsilon0
+
+    def k_vectors(self):
+        return self._k_vectors
 
     def epsilon_lj(self):
         """Returns all the particles' epsilon.
@@ -460,7 +475,10 @@ class SystemState:
         :return float
                 the Lennard Jones potential between the two particles."""
 
-        q = (sigma / distance)**6
+        if distance != 0:
+            q = (sigma / distance)**6
+        else:
+            q = 0                   # ToDo: Like this Ben?
 
         return 4.0 * epsilon_lj * (q * (q - 1))
 
@@ -470,8 +488,8 @@ class SystemState:
         :return ndarray
                 an array of arrays containing the potential between each couple of particles."""
         if self._potential_lj is None:
-            self._energy_lj = 0
             if self.system().info().use_neighbours():
+                self._energy_lj = 0
                 self._potential_lj = np.zeros((self.system().info().num_particles(),
                                                self.system().info().num_particles()))
                 for i in range(self.system().info().num_particles()):
@@ -489,14 +507,10 @@ class SystemState:
             else:
                 out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
                 self._potential_lj = np.zeros(out_shape)
-                for i in range(self.system().info().num_particles()):
-                    for j in range(i + 1, self.system().info().num_particles()):
-                        pot_lj = self.calc_potential_lj(self.distance().distances_wrapped()[i][j],
-                                                        self.system().info().epsilon_lj_eff()[i][j],
-                                                        self.system().info().sigma_eff()[i][j])
-                        self._potential_lj[i][j] = pot_lj
-                        self._potential_lj[j][i] = pot_lj
-                        self._energy_lj += pot_lj
+                for i in np.ndindex(out_shape):
+                    self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
+                                                                   self.system().info().epsilon_lj_eff()[i],
+                                                                   self.system().info().sigma_eff()[i])
         return self._potential_lj
 
     def energy_lj(self):
@@ -546,20 +560,9 @@ class SystemState:
             charges = self.system().info().particle_charges()
             sigma = self.system().info().sigma_eff()
             sigma_one = self.system().info().sigma()
-            L = self.system().info().char_length()
             pos = self.positions()
             cutoff = self.system().info().cutoff()
-
-            k_vectors = []
-            reci_cutoff = 10
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x+y+z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
+            k_vectors = self.system().info().k_vectors()
 
             if self.system().info().use_neighbours():
                 # making sum for short energy WITH neighbours
