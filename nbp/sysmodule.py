@@ -90,6 +90,18 @@ class SystemInfo:
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
 
+        # k vectors
+        self._k_vectors = []
+        reci_cutoff = 10
+        for x in range(reci_cutoff):
+            for y in range(-reci_cutoff, reci_cutoff, 1):
+                for z in range(-reci_cutoff, reci_cutoff, 1):
+                    test = x + y + z
+                    if test != 0:
+                        k = [x, y, z]
+                        k = [i * (2 * np.pi / self._char_length) for i in k]
+                        self._k_vectors.append(k)
+
         # booleans
         self._lj = lj
         self._ewald = ewald
@@ -137,6 +149,9 @@ class SystemInfo:
 
     def epsilon0(self):
         return self._epsilon0
+
+    def k_vectors(self):
+        return self._k_vectors
 
     def epsilon_lj(self):
         return self._epsilon_lj
@@ -222,7 +237,10 @@ class SystemState:
         if sigma < 0:
             raise AttributeError('Sigma can\'t be smaller than zero')
 
-        q = (sigma / distance)**6
+        if distance != 0:
+            q = (sigma / distance)**6
+        else:
+            q = 0                   # ToDo: Like this Ben?
 
         return 4.0 * epsilon_lj * (q * (q - 1))
 
@@ -288,20 +306,9 @@ class SystemState:
             charges = self.system().info().particle_charges()
             sigma = self.system().info().sigma_eff()
             sigma_one = self.system().info().sigma()
-            L = self.system().info().char_length()
             pos = self.positions()
             cutoff = self.system().info().cutoff()
-
-            k_vectors = []
-            reci_cutoff = 10
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x+y+z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
+            k_vectors = self.system().info().k_vectors()
 
             if self.system().info().use_neighbours():
                 # making sum for short energy WITH neighbours
