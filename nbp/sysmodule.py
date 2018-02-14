@@ -230,20 +230,21 @@ class SystemState:
         """Calculates the Lennard-Jones potential between each couple of particles"""
         if self._potential_lj is None:
             if self.system().info().use_neighbours():
-                self._potential = 0
-                particle_number = self._positions.size
-                for i in range(particle_number):
-                    neighbour = self.neighbours().get_neighbours(self._positions[i])
-                    for j in range(i + 1, particle_number):
-                        sigma = self.system().info().sigma_eff()[i][neighbour.nb_pos[j]]
-                        epsilon_lj = self.system().info().epsilon_lj_eff()[i][neighbour.nb_pos[j]]
-                        distance = neighbour.nb_dist[j]
-                        try:
-                            pot_lj = self.calc_potential_lj(distance, epsilon_lj, sigma)
-                            self._potential += pot_lj
-                        except AttributeError:
-                            print("Either sigma (={}) or the distance (={}) "
-                                  "were wrongly calculated for the couple [{}][{}]".format(sigma, distance, i, j))
+                self._energy_lj = 0
+                self._potential_lj = np.zeros((self.system().info().num_particles(),
+                                               self.system().info().num_particles()))
+                for i in range(self.system().info().num_particles()):
+                    neighbours = self.neighbours().get_neighbours(i)
+                    for j in range(len(neighbours.nb_ID)):
+                        j_neighbor = neighbours.nb_ID[j]
+                        if j_neighbor > i:
+                            sigma = self.system().info().sigma_eff()[i][j_neighbor]
+                            epsilon = self.system().info().epsilon_lj_eff()[i][j_neighbor]
+                            distance = neighbours.nb_dist[j]
+                            pot_lj = self.calc_potential_lj(distance, epsilon, sigma)
+                            self._potential_lj[i][j_neighbor] = pot_lj
+                            self._potential_lj[j_neighbor][i] = pot_lj
+                            self._energy_lj += pot_lj
             else:
                 out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
                 self._potential_lj = np.zeros(out_shape)
@@ -256,7 +257,7 @@ class SystemState:
     def energy_lj(self):
         if self._energy_lj is None:
             if self.system().info().use_neighbours():
-                pass
+                self.potential_lj()
             else:
                 self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
         return self._energy_lj
@@ -307,12 +308,12 @@ class SystemState:
                 nb = self.neighbours()
                 shortsum = 0
                 for i in range(len(pos)):
-                    neighbour = nb.get_neighbours(pos[i])
-                    for j in range(len(neighbour.nb_pos)):
+                    neighbour = nb.get_neighbours(i)
+                    for j in range(len(neighbour.nb_ID)):
                         if i != j:
                             distance = neighbour.nb_dist[j]
                             qi = charges[i]
-                            qj = charges[neighbour.nb_pos[j]]
+                            qj = charges[neighbour.nb_ID[j]]
                             shortsum += (qi * qj) / distance * sp.special.erfc(
                                 (np.linalg.norm(distance)) / (np.sqrt(2) * sigma[i, j]))
             else:
@@ -391,12 +392,12 @@ class SystemState:
             # forces resulting from short energy
             for i in range(len(pos)):
                 if self.system().info().use_neighbours():
-                    neighbour = nb.get_neighbours(pos[i])
+                    neighbour = nb.get_neighbours(i)
                     force_sum = 0
-                    for j in range(len(neighbour.nb_pos)):
+                    for j in range(len(neighbour.nb_ID)):
                         if i != j:
                             distance = neighbour.nb_dist[j]
-                            qj = charges[neighbour.nb_pos[j]]
+                            qj = charges[neighbour.nb_ID[j]]
                             force_sum += qj * distance / distance**2 \
                                          * ( sp.special.erfc( np.linalg.norm(distance)/np.sqrt(2)*sigma[i, j])/ np.linalg.norm(distance)) \
                                         + np.sqrt(2/np.pi) * sigma[i, j]**(-1) * np.exp(- np.linalg.norm(distance)**2 / 2* sigma[i, j]**2)
