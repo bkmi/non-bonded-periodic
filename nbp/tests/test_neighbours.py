@@ -1,6 +1,7 @@
 import nbp
 import numpy as np
 
+
 def make_system(characteristic_length=10,
                 sigma=None, epsilon_lj=None, particle_charges=None, positions=None, particle_count=None,
                 lj=True, ewald=True, use_neighbours=False):
@@ -65,14 +66,14 @@ def test_communicativity():
         assert True
 
 
-if 1:
+if 0:
     def setup_neighbours(positions, particle_count, char_length, x):
         charges = np.random.rand(particle_count, 1)
         sigma = np.ones((particle_count, 1))
         epsilon_lj = np.ones((particle_count, 1))
         system = nbp.System(characteristic_length=char_length,
-                sigma=sigma, epsilon_lj=epsilon_lj, particle_charges=charges, positions=positions,
-                lj=True, ewald=True, use_neighbours=True)
+                            sigma=sigma, epsilon_lj=epsilon_lj, particle_charges=charges, positions=positions,
+                            lj=True, ewald=True, use_neighbours=True)
         neighbours = nbp.Neighbours(system.info(), system.state(), system, verbose=False)
         neighbours_list = neighbours.get_neighbours(x)
 

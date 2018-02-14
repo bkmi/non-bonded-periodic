@@ -229,8 +229,8 @@ class SystemState:
     def potential_lj(self):
         """Calculates the Lennard-Jones potential between each couple of particles"""
         if self._potential_lj is None:
-            self._energy_lj = 0
             if self.system().info().use_neighbours():
+                self._energy_lj = 0
                 self._potential_lj = np.zeros((self.system().info().num_particles(),
                                                self.system().info().num_particles()))
                 for i in range(self.system().info().num_particles()):
@@ -248,19 +248,18 @@ class SystemState:
             else:
                 out_shape = (self.system().info().num_particles(), self.system().info().num_particles())
                 self._potential_lj = np.zeros(out_shape)
-                for i in range(self.system().info().num_particles()):
-                    for j in range(i + 1, self.system().info().num_particles()):
-                        pot_lj = self.calc_potential_lj(self.distance().distances_wrapped()[i][j],
-                                                        self.system().info().epsilon_lj_eff()[i][j],
-                                                        self.system().info().sigma_eff()[i][j])
-                        self._potential_lj[i][j] = pot_lj
-                        self._potential_lj[j][i] = pot_lj
-                        self._energy_lj += pot_lj
+                for i in np.ndindex(out_shape):
+                    self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
+                                                                   self.system().info().epsilon_lj_eff()[i],
+                                                                   self.system().info().sigma_eff()[i])
         return self._potential_lj
 
     def energy_lj(self):
         if self._energy_lj is None:
-            self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
+            if self.system().info().use_neighbours():
+                self.potential_lj()
+            else:
+                self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
         return self._energy_lj
 
     def forces_lj(self):
