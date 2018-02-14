@@ -33,23 +33,22 @@ class System:
                  lj=True, ewald=True, use_neighbours=False):
         """The initialize function.
 
-        :param
-            characteristic_length:  float
-                                    the characteristic length.
-            sigma:  ndarray
-                    the value of a particle's sigma.
-            epsilon_lj: ndarray
-                        the value of a signle particle's epsilon.
-            particle_charges:   ndarray
-                                the charges of the particles.
-            positions:  ndarray
-                        the position of the particles.
-            lj: boolean, optional (default = True)
-                if true, the Lennard Jones potential is used in the energy calculations.
-            ewald:  boolean, optional (default = True)
-                    if true, Ewald's summation is used in the energy calculations.
-            use_neighbours: boolean, optional (default = False)
-                            if true, a cut off radius is applied during the calculations.
+        :param  characteristic_length:  float
+                                       the characteristic length.
+        :param  sigma:  ndarray
+                        the value of a particle's sigma.
+        :param  epsilon_lj: ndarray
+                            the value of a signle particle's epsilon.
+        :param  particle_charges:   ndarray
+                                    the charges of the particles.
+        :param  positions:  ndarray
+                            the position of the particles.
+        :param  lj: boolean, optional (default = True)
+                    if true, the Lennard Jones potential is used in the energy calculations.
+        :param  ewald:  boolean, optional (default = True)
+                        if true, Ewald's summation is used in the energy calculations.
+        :param  use_neighbours: boolean, optional (default = False)
+                                if true, a cut off radius is applied during the calculations.
         """
         particle_charges = np.asarray(particle_charges)
         sigma = np.asarray(sigma)
@@ -74,8 +73,7 @@ class System:
     def update_state(self, new_state):
         """Appends the new state to the systemStates list.
 
-        :param
-            new_state:  SystemState
+        :param  new_state:  SystemState
                         the state at step len(self._systemState) + 1.
 
         :return nothing
@@ -189,23 +187,22 @@ class SystemInfo:
                  lj=None, ewald=None, use_neighbours=None):
         """Initialization function.
 
-        :param
-            characteristic_length:  float
-                                    the length of the cubic box's side.
-            sigma:  ndarray
-                    the value of a particle's sigma.
-            epsilon_lj: ndarray
-                        the value of a single particle's epsilon.
-            particle_charges:   ndarray
-                                the charges of the particle.
-            system: System
-                    the system containing this systemState
-            _lj:    Boolean
-                    if True, LJ potential is used in the energies calculations.
-            _ewald: Boolean
-                    if True, Ewald's summation is used in the energies calculations.
-            _use_neighbours:    Boolean
-                                if True, the neighbourlist is implemented.
+        :param characteristic_length:  float
+                                       the length of the cubic box's side.
+        :param  sigma:  ndarray
+                        the value of a particle's sigma.
+        :param  epsilon_lj: ndarray
+                            the value of a single particle's epsilon.
+        :param  particle_charges:   ndarray
+                                    the charges of the particle.
+        :param  system: System
+                        the system containing this systemState
+        :param  _lj:    Boolean
+                       if True, LJ potential is used in the energies calculations.
+        :param  _ewald: Boolean
+                        if True, Ewald's summation is used in the energies calculations.
+        :param  _use_neighbours:    Boolean
+                                    if True, the neighbourlist is implemented.
 
         """
         self._sigma = np.asarray(sigma)
