@@ -8,7 +8,7 @@ from scipy.special import erfc
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions, reci_cutoff,
                  lj=True, ewald=True, use_neighbours=False):
         particle_charges = np.asarray(particle_charges)
         sigma = np.asarray(sigma)
@@ -25,7 +25,7 @@ class System:
         if not (positions.shape[0] == epsilon_lj.shape[0]):
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
-        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
+        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, self,
                                       lj=lj, ewald=ewald, use_neighbours=use_neighbours)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
@@ -74,7 +74,7 @@ class SystemInfo:
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, system,
                  lj=None, ewald=None, use_neighbours=None):
         self._sigma = np.asarray(sigma)
         self._worse_sigma = np.max(sigma)
@@ -92,7 +92,6 @@ class SystemInfo:
 
         # k vectors
         self._k_vectors = []
-        reci_cutoff = 10
         for x in range(reci_cutoff):
             for y in range(-reci_cutoff, reci_cutoff, 1):
                 for z in range(-reci_cutoff, reci_cutoff, 1):
