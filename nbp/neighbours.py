@@ -37,7 +37,6 @@ class Neighbours:
         self._verbose = verbose
         self.SystemInfo = system_info
         self.SystemState = system_state
-        # It might be possible to merge info and state into this.
         self.System = system
         self._box_length = self.SystemInfo.char_length()
         self._skin_radius = self.SystemInfo.worse_sigma() * 3
@@ -45,6 +44,12 @@ class Neighbours:
         self._subcells_inrow = 1
         self._subcell_length = self._create_subcells()
         self._neighbour_list = self._create_neighbours()
+
+        # Empty frame for the neighbours
+        self._neighbours_frame_IDs = None
+        self._neighbours_frame_dist = None
+        self._create_neighbours_frame()
+
         # variables needed for update
         self._last_update = 0
         self._update_count = 0
@@ -87,22 +92,17 @@ class Neighbours:
 
         # get positions of all particles
         positions = self.SystemState.positions()
-        # print("positions:", positions)
         # Find list of particles each subcell contains
         for i in range(particle_number):
 
             subcell_id = self._find_subcell(positions[i])
 
-            #print("This is i:", i)
-            #print("This is the subcell ID:", subcell_id)
             try:
                 self._neighbour_list[i] = int(self._start_index[subcell_id])
                 self._start_index[subcell_id] = int(i)
             except IndexError:
                 pass
-                # print("IndexError: Index out of range in start_index", subcell_id)
-        #print("created neighbour List:", self._neighbour_list,
-         #    "\n start_index:", self._start_index)
+
         return self._neighbour_list
 
     def _find_subcell(self, position):
@@ -141,6 +141,9 @@ class Neighbours:
         System state (e.g. box length etc) should be the same.
         :return:new neighbour list.
         """
+        # update the frame each time:
+        self._create_neighbours_frame()
+
         # get positions from last update
         positions_old = self.System.states()[self._last_update].positions()
         # get current positions
@@ -164,17 +167,19 @@ class Neighbours:
 
         return self._neighbour_list
 
-    def get_neighbours(self, particle_pos):
+
+    def _neighbours_for_one(self, particle_ID):
         """
         Calculate which neighbours are around the particle.
         Calculates the distance between a particle and its neighbours
         :param particle_pos: 3d coordinates of single particle
-        :return: array of neighbour particles and array with distances
+        :return: array of neighbour particles ID and array with distances
         """
         positions = self.SystemState.positions()
-        neighbours = []           # neighbour positions
+        particle_pos = positions[particle_ID]
+        neighbours = []  # neighbour positions
         neighbours_distance = []  # distance of particle to each neighbour
-        new_neighbours = []       # only neighbours within cutoff radius
+        new_neighbours = []  # only neighbours within cutoff radius
         neighbour_subcells = self._get_neighbours_subcells(particle_pos)
         # get starting positions for each subcell
         start_array = np.asarray(self._start_index)
@@ -185,7 +190,6 @@ class Neighbours:
         # print("neighbour subcells:", neighbour_subcells)
         for i in range(27):
             i = neighbour_subcells[i]
-            # print("i in loop:" , i)
             index = int(start_array[i])
 
             while index >= 0:
@@ -193,39 +197,130 @@ class Neighbours:
                 index = int(self._neighbour_list[index])
 
         nb_length = np.shape(neighbours)[0]
-        if self._verbose:
-            print("neighbour length:", nb_length)
-        recent_neighbours = []
+        # if self._verbose:
+          #  print("neighbour length:", nb_length)
+
         # get distance from particle to neighbours
         for i in range(nb_length):
             index = neighbours[i]
-            x_distance = abs(particle_pos[0] - positions[index][0])
-            y_distance = abs(particle_pos[1] - positions[index][1])
-            z_distance = abs(particle_pos[2] - positions[index][2])
+            # only do this calculation for distances that have not been calculated before
+            if index > particle_ID:
+                x_distance = abs(particle_pos[0] - positions[index][0])
+                y_distance = abs(particle_pos[1] - positions[index][1])
+                z_distance = abs(particle_pos[2] - positions[index][2])
 
-            # correct boundary subcells distance.
-            l = 2*self._subcell_length  # max possible distance
-            if x_distance > l:
-                x_distance = self._box_length - x_distance
-            if y_distance > l:
-                y_distance = self._box_length - y_distance
-            if z_distance > l:
-                z_distance = self._box_length - z_distance
+                # correct boundary subcells distance.
+                l = 2 * self._subcell_length  # max possible distance
+                if x_distance > l:
+                    x_distance = self._box_length - x_distance
+                if y_distance > l:
+                    y_distance = self._box_length - y_distance
+                if z_distance > l:
+                    z_distance = self._box_length - z_distance
 
+                distance_3d = np.array([x_distance, y_distance, z_distance])
 
-            distance = np.sqrt(x_distance**2 + y_distance**2 + z_distance**2)
-            # print("distance: ", distance)
-            # distance no further than cutoff radius:
-            if 0 < distance <= self.SystemInfo.cutoff():
-                neighbours_distance.append(distance)
-                new_neighbours.append(index)
+                distance = np.linalg.norm(distance_3d)
+                # if self._verbose:
+                    # print("distance: ", distance)
+                # distance no further than cutoff radius:
+                if 0 < distance <= self.SystemInfo.cutoff():
+                    neighbours_distance.append(distance)
+                    new_neighbours.append(index)
 
         # overwrite neighbours with the correct ones.
         neighbours = new_neighbours
 
         # Create namedtuple for easy access of output
-        Result = collections.namedtuple("Neighbour_result", ["nb_pos", "nb_dist"])
-        r = Result(nb_pos=neighbours, nb_dist=neighbours_distance)
+        Result = collections.namedtuple("Neighbour_result", ["nb_ID", "nb_dist"])
+        r = Result(nb_ID=neighbours, nb_dist=neighbours_distance)
+
+        return r
+
+
+    def _create_neighbours_frame(self):
+        """
+        Create a data frame -> Dictionary which contains the particle IDs for the neighbours
+        and the distances.
+        There are two dictionaries. One for the neighbour IDs and one for the distance.
+        As key the number of the neighbour is used.
+        """
+        particle_number = self.SystemInfo.num_particles()
+        self._neighbours_frame_IDs = {}
+        self._neighbours_frame_dist = {}
+
+        for i in range(particle_number):
+            nb = self._neighbours_for_one(i)
+            key = i
+            # If it does not have neighbours there should be no key for it.
+            if not nb:
+                self._neighbours_frame_IDs[i] = nb.nb_ID
+                self._neighbours_frame_dist[i] = nb.nb_dist
+            else:
+                # key for a particle does not exist till now
+                if key not in self._neighbours_frame_IDs.keys():
+                    self._neighbours_frame_IDs[i] = nb.nb_ID
+                    self._neighbours_frame_dist[i] = nb.nb_dist
+                # if some values already exist then add the new ones to them.
+                else:
+                    existing_IDs = self._neighbours_frame_IDs[i]
+                    existing_dist = self._neighbours_frame_dist[i]
+                    if type(existing_IDs) is int:
+                        existing_IDs = [existing_IDs]
+                        existing_dist = [existing_dist]
+
+                    merged_IDs = existing_IDs + nb.nb_ID
+                    merged_dist = existing_dist + nb.nb_dist
+
+                    self._neighbours_frame_IDs[i] = merged_IDs
+                    self._neighbours_frame_dist[i] = merged_dist
+
+                # Already save the distances for both particles to avoid
+                # calculating them twice.
+                for count, nb_index in enumerate(nb.nb_ID):
+
+                    if nb_index not in self._neighbours_frame_IDs.keys():
+                        self._neighbours_frame_IDs[nb_index] = [i]
+                        self._neighbours_frame_dist[nb_index] = [nb.nb_dist[count]]
+                    else:
+                        existing_IDs = self._neighbours_frame_IDs[nb_index]
+                        existing_dist = self._neighbours_frame_dist[nb_index]
+
+                        if type(existing_IDs) is int:
+                            existing_IDs = [existing_IDs]
+                            existing_dist = [existing_dist]
+
+                        merged_IDs = existing_IDs + [i]
+                        merged_dist = existing_dist + [nb.nb_dist[count]]
+
+                        self._neighbours_frame_IDs[nb_index] = merged_IDs
+                        self._neighbours_frame_dist[nb_index] = merged_dist
+
+        pass
+
+    def _get_neighbours_frame(self):
+        """
+        Call the whole frame that contains the neighbours for every particle and
+        the distances. Only meant for testing purposes but can be changed to a public
+        function if necessary.
+        :return: dictionary
+        """
+        return {'IDs': self._neighbours_frame_IDs, 'Distance': self._neighbours_frame_dist}
+
+    def get_neighbours(self, particle_ID):
+        """
+        This gets the neighbours of a single particle and the distances to
+        its neighbours.
+        :param particle_ID: particle number
+        :return:
+        """
+        key = particle_ID
+        if key in self._neighbours_frame_IDs.keys():
+            neighbours = self._neighbours_frame_IDs[particle_ID]
+            neighbours_distance = self._neighbours_frame_dist[particle_ID]
+
+        Result = collections.namedtuple("Neighbour_result", ["nb_ID", "nb_dist"])
+        r = Result(nb_ID=neighbours, nb_dist=neighbours_distance)
 
         return r
 

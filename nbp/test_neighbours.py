@@ -1,7 +1,6 @@
 import nbp
 import numpy as np
 
-
 def make_system(characteristic_length=10,
                 sigma=None, epsilon_lj=None, particle_charges=None, positions=None, particle_count=None,
                 lj=True, ewald=True, use_neighbours=False):
@@ -25,6 +24,7 @@ def make_system(characteristic_length=10,
 
     system = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions,
                         lj=lj, ewald=ewald, use_neighbours=use_neighbours)
+    nbp.Neighbours(system.info(), system.state(), system)
     return system
 
 
@@ -52,8 +52,10 @@ def test_communicativity():
         print('Neighbours of particle {0}: {1}'.format(particle, nb_ID))
         print('Distances from particle {0}: {1}'.format(particle, nb_dist))
         for neighbour_index, neighbour in enumerate(nb_ID):
-            neighbour_result = system.state().neighbours().get_neighbours(neighbour)
+            neighbour_result = system.state().neighbours().get_neighbours(
+                neighbour)
             neighbour_neighbours = neighbour_result.nb_ID
+            print("neighbour dist: ", neighbour_result.nb_dist)
             neighbour_dist = neighbour_result.nb_dist
             print('Neighbours of particle {0}: {1}'.format(neighbour, neighbour_neighbours))
             print('Distances from particle {0}: {1}'.format(neighbour, neighbour_dist))
@@ -65,6 +67,8 @@ def test_communicativity():
                 assert neighbour_dist[neighbour_neighbours.index(particle)] == nb_dist[neighbour_index]
         assert True
 
+test_communicativity()
+
 
 if 0:
     def setup_neighbours(positions, particle_count, char_length, x):
@@ -72,33 +76,34 @@ if 0:
         sigma = np.ones((particle_count, 1))
         epsilon_lj = np.ones((particle_count, 1))
         system = nbp.System(characteristic_length=char_length,
-                            sigma=sigma, epsilon_lj=epsilon_lj, particle_charges=charges, positions=positions,
-                            lj=True, ewald=True, use_neighbours=True)
-        neighbours = nbp.Neighbours(system.info(), system.state(), system, verbose=False)
+                sigma=sigma, epsilon_lj=epsilon_lj, particle_charges=charges, positions=positions,
+                lj=True, ewald=True, use_neighbours=True)
+        neighbours = nbp.Neighbours(system.info(), system.state(), system, verbose=True)
         neighbours_list = neighbours.get_neighbours(x)
 
         return neighbours_list
 
+    if 0:
+        positions_set1 = 4 * np.random.random_sample((100, 3))
+        nb_result = setup_neighbours(positions_set1, len(positions_set1), 5, 8)
 
-    positions_set1 = 4 * np.random.random_sample((100, 3))
-    nb_result = setup_neighbours(positions_set1, len(positions_set1), 5, 8)
-
-    # Call the named tuple and show the positions and the distance
-    print("position result 1:", nb_result.nb_ID)
-    print("distance result 1:",  nb_result.nb_dist)
-    print("------------------End Test 1 ----------------------------- \n")
+        # Call the named tuple and show the positions and the distance
+        print("position result 1:", nb_result.nb_ID)
+        print("distance result 1:",  nb_result.nb_dist)
+        print("------------------End Test 1 ----------------------------- \n")
 
     # Test if a real neighbour is seen as one.
-    positions_set2 = [[0, 0, 0], [1, 1.5, 1.2], [11, 11, 10]]
-    positions_set2 = np.asarray(positions_set2)
-    nb_result2 = setup_neighbours(positions_set2, len(positions_set2), 10, 2)
+    for i in range(7):
+        positions_set2 = [[0, 0, 0], [1, 1.5, 1.2], [11, 11, 10], [5, 6, 5], [5, 5, 5], [8, 9, 10], [5.5, 6, 5.8]]
+        positions_set2 = np.asarray(positions_set2)
+        nb_result2 = setup_neighbours(positions_set2, len(positions_set2), 10, i)
 
-    # Call the named tuple and show the positions and the distance
-    print("position result 2:", nb_result2.nb_ID)
-    print("distance result 2:",  nb_result2.nb_dist)
+        # Call the named tuple and show the positions and the distance
+        print("\n position result 2 for {0}: ".format(i), nb_result2.nb_ID)
+        print("distance result 2:",  nb_result2.nb_dist)
     print("--------------End Test 2 ----------------------------- \n")
 
-    # Test 2 if a real neighbour is seen as one.
+    # Test 3 if a real neighbour is seen as one.
     positions_set3 = [[5, 5, 5], [5, 5, 8]]
     positions_set3 = np.asarray(positions_set3)
     nb_result3 = setup_neighbours(positions_set3, len(positions_set3), 10, 1)
@@ -107,6 +112,35 @@ if 0:
     print("position result 3:", nb_result3.nb_ID)
     print("distance result 3:",  nb_result3.nb_dist)
     print("---------------End Test 3 ----------------------------- \n")
+
+if 0:
+    def get_neighbour_frame(positions, particle_count, char_length):
+        charges = np.random.rand(particle_count, 1)
+        sigma = np.ones((particle_count, 1))
+        epsilon_lj = np.ones((particle_count, 1))
+        system = nbp.System(characteristic_length=char_length,
+                            sigma=sigma, epsilon_lj=epsilon_lj, particle_charges=charges, positions=positions,
+                            lj=True, ewald=True, use_neighbours=True)
+        neighbours = nbp.Neighbours(system.info(), system.state(), system, verbose=False)
+        neighbours_list = neighbours._get_neighbours_frame()
+
+        return neighbours_list
+
+
+    positions_set = [[0, 0, 0], [1, 1.5, 1.2], [11, 11, 10], [5, 6, 5], [5, 5, 5], [8, 9, 10], [5.5, 6, 5.8], [5.3, 5.8, 5.8]]
+    positions_set = np.asarray(positions_set)
+    dict_test = get_neighbour_frame(positions_set, len(positions_set), 10)
+
+    # Call the named tuple and show the positions and the distance
+    print("All IDs:", dict_test["IDs"])
+    print("All distances:", dict_test["Distance"])
+
+    for i in range(8):
+        if len(dict_test["IDs"][i]) != len(dict_test["Distance"][i]):
+            raise ValueError('Number of neighbours and distances is not the same')
+
+    print("--------------End Test 2 ----------------------------- \n")
+
 
 if 0:
     def check_update(positions, particle_count, char_length, x):
@@ -145,3 +179,4 @@ if 0:
     print("distance result updated:",  nb_update[2])
 
     print("---------------End Test 4 ----------------------------- \n")
+

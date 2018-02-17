@@ -9,20 +9,26 @@ class MCMC:
     def __init__(self, system):
         self._system = system
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.25):
+    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.50,
+                 drop_intermediate_states=True):
         """Optimize from the last system state."""
-        optimizer = Optimizer(self._system)
+        optimized_system = self._system
+        optimizer = Optimizer(optimized_system)
         energies = []
         if cov is None:
-            cov = self._system.info().cutoff()/6
+            cov = optimized_system.info().cutoff()/24
         for i in range(max_steps):
             new_state, new_energy = optimizer.act(cov, num_particles=num_particles)
-            self._system.update_state(new_state)
+            optimized_system.update_state(new_state)
             energies.append(new_energy)
             if len(energies) > no_progress_break and np.all(
                     np.less(np.abs(np.asarray(energies)[-no_progress_break:] - new_energy), d_energy_tol)):
                 break
-        return self._system.state()
+
+        if drop_intermediate_states:
+            optimized_system._systemStates = [optimized_system.state()]
+
+        return optimized_system
 
     def simulate(self, steps, temperature):
         """Simulate from the last system state."""
