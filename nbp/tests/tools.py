@@ -4,7 +4,7 @@ import numpy as np
 
 def make_system(characteristic_length=10,
                 sigma=None, epsilon_lj=None, particle_charges=None, positions=None, particle_count=None,
-                lj=True, ewald=True, use_neighbours=False):
+                lj=True, ewald=True, use_neighbours=False, reci_cutoff=5):
     if particle_count is None:
         if particle_charges is not None:
             particle_count = np.asarray(particle_charges).shape[0]
@@ -23,6 +23,6 @@ def make_system(characteristic_length=10,
     if positions is None:
         positions = characteristic_length * np.random.rand(particle_count, 3)
 
-    system = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+    system = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions, reci_cutoff,
                         lj=lj, ewald=ewald, use_neighbours=use_neighbours)
     return system
