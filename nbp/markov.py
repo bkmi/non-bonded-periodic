@@ -84,7 +84,7 @@ class Simulator:
             :parameter: temperature (float)
                 temperature in Kelvin [K]
         """
-        cov = self._system.info().cutoff()
+        cov = self._system.info()._sigma_lj()/15
         num_particles = len(self._system.state().positions())
         indices_toMove = np.random.choice(np.arange(num_particles), size=int(np.ceil((0.1*num_particles))))
         # indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
