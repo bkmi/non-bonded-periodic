@@ -8,8 +8,8 @@ from scipy.special import erfc
 class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions, reci_cutoff,
-                 lj=True, ewald=True, use_neighbours=False):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+                 reci_cutoff=5, lj=True, ewald=True, use_neighbours=False):
         particle_charges = np.asarray(particle_charges)
         sigma = np.asarray(sigma)
         epsilon_lj = np.asarray(epsilon_lj)
@@ -25,8 +25,8 @@ class System:
         if not (positions.shape[0] == epsilon_lj.shape[0]):
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
-        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, self,
-                                      lj=lj, ewald=ewald, use_neighbours=use_neighbours)
+        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
+                                      reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
 
@@ -74,8 +74,8 @@ class SystemInfo:
     particle_charges: Arranged like position: (row, columns) == (particle_num, charge_value)
     """
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, system,
-                 lj=None, ewald=None, use_neighbours=None):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
+                 reci_cutoff=None, lj=None, ewald=None, use_neighbours=None):
         self._sigma = np.asarray(sigma)
         self._worse_sigma = np.max(sigma)
         self._sigma_eff = (np.reshape(self._sigma[None, :], -1) + np.reshape(self._sigma, -1)[:, None])/2
@@ -91,6 +91,7 @@ class SystemInfo:
         self._system = system
 
         # k vectors
+        self._reci_cutoff = reci_cutoff
         self._k_vectors = []
         for x in range(reci_cutoff):
             for y in range(-reci_cutoff, reci_cutoff, 1):
@@ -172,6 +173,9 @@ class SystemInfo:
 
     def num_particles(self):
         return self.particle_charges().shape[0]
+
+    def reci_cutoff(self):
+        return self._reci_cutoff
 
 
 class SystemState:
@@ -380,20 +384,10 @@ class SystemState:
             L = self.system().info().char_length()
             V = self.system().info().volume()
             cutoff = self.system().info().cutoff()
+            k_vectors = self.system().info().k_vectors()
             forces_abs = []
             forces_near = []
             forces_far = []
-
-            k_vectors = []
-            reci_cutoff = 10
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x + y + z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
 
             # forces resulting from short energy
             for i in range(len(pos)):
@@ -484,7 +478,7 @@ class SystemState:
                                          ewald=self.system().info().ewald())
 
         if self._forces is None:
-            self._forces = np.zeros(self.system().info().num_particles(), 3)
+            self._forces = np.zeros((self.system().info().num_particles(), 3))
             if lj:
                 self._forces += self.energy_lj()
             if ewald:
