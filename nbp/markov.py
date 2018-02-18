@@ -90,9 +90,9 @@ class Simulator:
             :parameter: temperature (float)
                 temperature in Kelvin [K]
         """
-        cov = self._system.info()._sigma_lj()/15
+        cov = self._system.info().sigma()[0]/15
         num_particles = len(self._system.state().positions())
-        indices_toMove = np.random.choice(np.arange(num_particles), size=int(np.ceil((0.1*num_particles))))
+        indices_toMove = np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))
         # indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
         proposal_state = self._metropolis(indices_toMove, cov)
         if self._check(proposal_state, temperature):
@@ -106,7 +106,8 @@ class Simulator:
             :parameter: state (obj)
             :parameter: temperature (float)
         """
-        beta = 1/(8.6173303e-5 * temperature)
+        _k_b = 8.6173303e-5
+        beta = 1/(_k_b * temperature)
         energy_prev = self._system.state().energy()
         energy_prop = state.energy()
         p_acc = np.min((1, np.exp(beta * (energy_prop - energy_prev))))
@@ -117,8 +118,8 @@ class Simulator:
 
     def _metropolis(self, indices, cov):
         """Proposes the new states"""
-        new_positions = np.copy(self._system.states()[-1].positions())
-        new_positions[indices] = np.array(
-            [sp.stats.multivariate_normal(each, cov=cov).rvs().tolist() for each in new_positions[indices]])
+        new_positions = np.copy(self._system.state().positions())
+        new_positions[indices] += np.array(
+            [sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs().tolist() for each in new_positions[indices]])
         proposal_state = nbp.SystemState(new_positions, self._system)
         return proposal_state

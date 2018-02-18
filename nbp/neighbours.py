@@ -27,7 +27,6 @@ class Neighbours:
     _get_neighbour_subcell, _3d_subcell_id, _cell_y, _cell_z
     Public Functions:
     update_neighbours, get_neighbours
-
     """
     def __init__(self, system_info, system_state, system, verbose=False):
         """

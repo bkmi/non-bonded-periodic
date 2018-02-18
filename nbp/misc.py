@@ -70,6 +70,13 @@ class Analyser:
                 return self._get_rdf()
             raise UserWarning("Hey there! Use with caution, the feature is not yet correctly implemented!")
 
+        if typ == 'energy':
+            energy, edges = self._energy_distribution()
+            plt.hist(energy, bins=edges)
+
+        if typ == 'distances':
+            return self._distances_distribution()
+
     def plot_energy(self, typ='total', show=True, save=False, filename=None, hline=None,  fmt='png', **kwargs):
         """Energy Plotting method:
         Kwargs:
@@ -91,6 +98,7 @@ class Analyser:
                 filename = filename or "energy_{}_{}.{}".format(typ, time.strftime("%Y%M%d"), fmt)
                 axes.plot(energy)
                 axes.axhline(average)
+
                 if save:
                     figure.savefig(filename)
 
@@ -102,6 +110,7 @@ class Analyser:
             filename = filename or "energy_{}_{}.{}".format(typ, time.strftime("%Y%M%d"), fmt)
             axes.plot(energy)
             axes.axhline(y=average, color='green')
+            axes.text(1, 5, "Average: {:.3f} kJ/mol".format(average), fontsize=15)
             if save:
                 figure.savefig(filename)
 
@@ -132,9 +141,10 @@ class Analyser:
         plt.close()
 
     def get_energy(self, typ):
-        """A private method for getting the requested type of energy"""
+        """A method for getting the requested type of energy"""
         if typ == 'total' or 1:
-            energy_list = list(map(lambda x: x.energy(), self._states))
+
+            energy_list = list(map(lambda x: x.energy_lj(), self._states))
             print(energy_list)
             average = np.mean(energy_list)
             print(average)
@@ -245,7 +255,11 @@ class Analyser:
 
         return rdf
 
-    def _distance_distr(self):
+    def _energy_distribution(self):
+        energy = self.get_energy(typ='total')
+        return np.histogram(energy, bins=100)
+
+    def _distances_distribution(self):
         pass
 
 

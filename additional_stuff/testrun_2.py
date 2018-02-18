@@ -1,4 +1,4 @@
-from additional_stuff.misc_2 import Analyser
+from nbp.misc import Analyser
 from nbp.markov import *
 from nbp.distance import *
 from scipy.spatial import distance_matrix
@@ -390,18 +390,21 @@ if __name__ == '__main__':
     positions_start = positions_all[0]
     syst = System(parameters, positions=positions_start)
 
-    syst2 = nbp.System(parameters['box'][0],
-                       np.ones(len(positions_start))*parameters['sigma_lj'],
-                       np.ones(len(positions_start))*parameters['epsilon_lj'],
-                       np.zeros(len(positions_start)),
-                       positions=positions_start, ewald=False)
-    print(list(map(lambda x: SystemState(syst, x), positions_all)))
-    syst.extend_states(list(map(lambda x: SystemState(syst, x), positions_all)))
-
-    # syst2.simulate(1000, 1900)
+    # syst2 = nbp.System(parameters['box'][0],
+    #                    np.ones(len(positions_start))*parameters['sigma_lj'],
+    #                    np.ones(len(positions_start))*parameters['epsilon_lj'],
+    #                    np.zeros(len(positions_start)),
+    #                    positions=positions_start, ewald=False, reci_cutoff=5)
+    # print(list(map(lambda x: SystemState(syst, x), positions_all)))
+    # syst.extend_states(list(map(lambda x: SystemState(syst, x), positions_all)))
+    # for each in positions_all:
+        # syst2.update_state(nbp.SystemState(each, syst2))
+        # syst.update_state(SystemState(syst, each))
+    # syst2.simulate(1000, 300)
     # analysis2 = Analyser(syst2)
     # energy = analysis2.get_energy(typ='lj')
     # analysis2.plot_energy(typ='lj', hline={"yval": 0, "color": "r", "style": "--"})
+    # analysis2.plot_distribution(typ='energy')
     # analysis2.play_frames()
     # lj_potentials = []
     # for each in syst2.states():
@@ -412,11 +415,13 @@ if __name__ == '__main__':
     # # print()
     #
     # syst.optimize(500)
-    syst.simulate(1000, 300)
+    syst.simulate(2000, 300)
+
     # # print(syst.state.energy_lj)
     analysis = Analyser(syst)
     # energy = analysis.get_energy(typ='lj')
     analysis.plot_energy(typ='lj', hline={"yval": 0, "color": "r", "style": "--"})
+    analysis.plot_distribution(typ='energy')
     # rdf = analysis.plot_distribution(typ='rdf', bins=500)
     # lj_gro = np.load(r"D:\Uni\Master\CompSci\lj_md\lj_300.npy")
     #print(np.equal(energy, lj_gro))
