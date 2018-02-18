@@ -9,7 +9,7 @@ class System:
     """Wrapper for static SystemInfo and state dependent SystemState info."""
 
     def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
-                 reci_cutoff=5, lj=True, ewald=True, use_neighbours=False):
+                 reci_cutoff=5, lj=True, ewald=True, use_neighbours=False, epsilon0=1):
         particle_charges = np.asarray(particle_charges)
         sigma = np.asarray(sigma)
         epsilon_lj = np.asarray(epsilon_lj)
@@ -26,7 +26,8 @@ class System:
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
         self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
-                                      reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours)
+                                      reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours,
+                                      epsilon0=epsilon0)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
 
@@ -75,7 +76,7 @@ class SystemInfo:
     """
 
     def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
-                 reci_cutoff=None, lj=None, ewald=None, use_neighbours=None):
+                 reci_cutoff=None, lj=None, ewald=None, use_neighbours=None, epsilon0=None):
         self._sigma = np.asarray(sigma)
         self._worse_sigma = np.max(sigma)
         self._sigma_eff = (np.reshape(self._sigma[None, :], -1) + np.reshape(self._sigma, -1)[:, None])/2
@@ -84,7 +85,7 @@ class SystemInfo:
         self._epsilon_lj = np.asarray(epsilon_lj)
         self._epsilon_lj_eff = np.sqrt(np.reshape(self._epsilon_lj, -1)[None, :]**2 +
                                        np.reshape(self._epsilon_lj, -1)[:, None]**2)
-        self._epsilon0 = 1
+        self._epsilon0 = epsilon0
 
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
