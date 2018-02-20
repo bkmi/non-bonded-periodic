@@ -66,6 +66,7 @@ class Parser:
             epsilon.append(par[Parser.__EPSILON])
             mass.append(par[Parser.__MASS])
 
-        return {'ch_length': self.box[1], 'pos': self.positions, 'sigma': sigma, 'epsilon': epsilon, 'mass': mass}
+        return {'ch_length': self.box[1], 'pos': self.positions, 'sigma': sigma,
+                'epsilon': epsilon, 'mass': mass, 'type': self.types}
 
     pass
