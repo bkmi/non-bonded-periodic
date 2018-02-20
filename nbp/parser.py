@@ -16,9 +16,9 @@ class Parser:
                     [sigma, epsilon and mass] for each particle type
         """
 
-    __SIGMA = 1
-    __EPSILON = 2
-    __MASS = 3
+    __SIGMA = 0
+    __EPSILON = 1
+    __MASS = 2
 
     def __init__(self, file='sodium-chloride-example.npz'):
         """The initialisation function.
