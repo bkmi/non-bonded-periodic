@@ -9,9 +9,13 @@ There's the option to use neighbourlist techniques to cut the calculations.
 ## Authors 
 
 Theresa *Kiszler*
+
 Ludovica *Lombardi*
+
 Benjamin *Miller* 
+
 Alexey *Shestakov* 
+
 Chris *Weiss*
 
 
@@ -19,7 +23,7 @@ Chris *Weiss*
 
 
 <p align="center">
-  <img src="https://imgur.com/a/V8m8a" width="350"/>
+  <img src="https://i.imgur.com/HInt9o3.png" width="350"/>
 </p>
 
 The structure of the code follows roughly this UML diagram.
