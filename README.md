@@ -29,8 +29,8 @@ TODO
 
 ### Authors 
 
-Theresa Kiszler
-Ludovica Lombardi
-Benjamin Miller
-Alexey Shestakov
+Theresa Kiszler  
+Ludovica Lombardi  
+Benjamin Miller  
+Alexey Shestakov  
 Chris Weiss
