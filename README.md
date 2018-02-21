@@ -1,16 +1,33 @@
 # non-bonded-periodic
+
 A Python package for non-bonded interactions in periodic systems.
+The method used to simulate the system is Markov Chain Montecarlo. Before the simulation starts, the system is optimized until its point of minimum energy. Then the simulation starts. INFORMATIONS ABOUT TIME STEPS, INFORMATION ABOUT TEMPERATURE.
+The energy is calculated using either Lennard Jones Potential, Ewald Summation or both.
+There's the option to use neighbourlist techniques to cut the calculations.
 
-## Brainstorm UML Diagram
-https://go.gliffy.com/go/share/s10vtlu2tep99qk28xim
 
-## Code Conventions
-Positions of multiple particles are organized: (particle (row), dimension (columns))  
-Neighbour particles call with method get_neighbours() are given as list of positions
+## Authors 
 
-### Authors:  
-Alexey,
-Ben,
-Chris,
-Ludovica,
-Tracy
+Theresa *Kiszler*
+Ludovica *Lombardi*
+Benjamin *Miller* 
+Alexey *Shestakov* 
+Chris *Weiss*
+
+
+## Code structure
+
+
+<p align="center">
+  <img src="https://imgur.com/a/V8m8a" width="350"/>
+</p>
+
+The structure of the code follows roughly this UML diagram.
+The code is divided in two subgroups:
+  * the acting part (on the left), that optimize and simulate the system
+  * the data part (on the right), that contains all the information, both static and dynamic, about the system
+Additional parts are to support, e.g. the misc and the neighbours class
+
+
+## Operating instructions
+TODO
