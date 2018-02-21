@@ -55,6 +55,8 @@ class Parser:
                             a n-dimensional array containing for each particle its epsilon.
                 mass:   ndarray
                         a n-dimensional array containing for each particle its mass.
+                type:   list
+                        a n-dimensional array containing for each particle its type.
         """
 
         sigma = []
@@ -66,7 +68,8 @@ class Parser:
             epsilon.append(par[Parser.__EPSILON])
             mass.append(par[Parser.__MASS])
 
-        return {'ch_length': self.box[1], 'pos': self.positions, 'sigma': sigma,
-                'epsilon': epsilon, 'mass': mass, 'type': self.types}
+        return {'ch_length': max(self.box), 'pos': np.asarray(self.positions), 'sigma': np.asarray(sigma),
+                'epsilon': np.asarray(epsilon), 'mass': np.asarray(mass),
+                'type': np.asarray(self.types), 'param': self.parameters}
 
     pass
