@@ -29,8 +29,8 @@ class System:
                 the actor who simulate or optimize the system.
     """
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions, reci_cutoff,
-                 lj=True, ewald=True, use_neighbours=False):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+                 reci_cutoff=5, lj=True, ewald=True, use_neighbours=False, epsilon0=1):
         """The initialize function.
 
         :param  characteristic_length:  float
@@ -65,8 +65,9 @@ class System:
         if not (positions.shape[0] == epsilon_lj.shape[0]):
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
-        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, self,
-                                      lj=lj, ewald=ewald, use_neighbours=use_neighbours)
+        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
+                                      reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours,
+                                      epsilon0=epsilon0)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
 
@@ -183,8 +184,8 @@ class SystemInfo:
                             if True, the neighbourlist is implemented.
     """
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, system,
-                 lj=None, ewald=None, use_neighbours=None):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
+                 reci_cutoff=None, lj=None, ewald=None, use_neighbours=None, epsilon0=None):
         """Initialization function.
 
         :param characteristic_length:  float
@@ -213,13 +214,14 @@ class SystemInfo:
         self._epsilon_lj = np.asarray(epsilon_lj)
         self._epsilon_lj_eff = np.sqrt(np.reshape(self._epsilon_lj, -1)[None, :]**2 +
                                        np.reshape(self._epsilon_lj, -1)[:, None]**2)
-        self._epsilon0 = 1
+        self._epsilon0 = epsilon0
 
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
 
         # k vectors
+        self._reci_cutoff = reci_cutoff
         self._k_vectors = []
         for x in range(reci_cutoff):
             for y in range(-reci_cutoff, reci_cutoff, 1):
@@ -360,6 +362,9 @@ class SystemInfo:
         :return int
                 the number of particles."""
         return self.particle_charges().shape[0]
+
+    def reci_cutoff(self):
+        return self._reci_cutoff
 
 
 class SystemState:
@@ -510,6 +515,7 @@ class SystemState:
                     self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
+                self._energy_lj = np.sum(self._potential_lj)
         return self._potential_lj
 
     def energy_lj(self):
@@ -634,20 +640,10 @@ class SystemState:
             L = self.system().info().char_length()
             V = self.system().info().volume()
             cutoff = self.system().info().cutoff()
+            k_vectors = self.system().info().k_vectors()
             forces_abs = []
             forces_near = []
             forces_far = []
-
-            k_vectors = []
-            reci_cutoff = 10
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x + y + z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
 
             # forces resulting from short energy
             for i in range(len(pos)):
@@ -738,7 +734,7 @@ class SystemState:
                                          ewald=self.system().info().ewald())
 
         if self._forces is None:
-            self._forces = np.zeros(self.system().info().num_particles(), 3)
+            self._forces = np.zeros((self.system().info().num_particles(), 3))
             if lj:
                 self._forces += self.energy_lj()
             if ewald:

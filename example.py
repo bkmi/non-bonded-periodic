@@ -14,8 +14,7 @@ def setup(specific_pos=False, use_neighbours=False):
                                  [0, -1, 2 ** (-1 / 2)]]) + characteristic_length / 2) * 3
     else:
         positions = np.random.rand(4, 3) * characteristic_length
-
-    system = make_system(characteristic_length=characteristic_length, positions=positions, lj=False, ewald=True,
+    system = make_system(characteristic_length=characteristic_length, positions=positions, lj=True, ewald=True,
                          use_neighbours=use_neighbours, reci_cutoff=5)
     return system
 
@@ -38,10 +37,10 @@ def simu(system, steps, temp):
 
 
 # For no neighbour list
-# sys = setup()
-# op_sys = optimize(sys, sys.info().cutoff() / 24)
-# op_sys = optimize(op_sys, sys.info().cutoff() / 32)
-# simu_sys = simu(op_sys, 100, 100)
+sys = setup()
+op_sys = optimize(sys, sys.info().cutoff() / 24)
+op_sys = optimize(op_sys, sys.info().cutoff() / 32)
+simu_sys = simu(op_sys, 100, 100)
 
 # With the neighbour list
 sys = setup(use_neighbours=True)
