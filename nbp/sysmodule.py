@@ -515,7 +515,7 @@ class SystemState:
                     self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
-                self._energy_lj = np.sum(self._potential_lj)
+                self._energy_lj = np.sum(np.triu(self._potential_lj))
         return self._potential_lj
 
     def energy_lj(self):
