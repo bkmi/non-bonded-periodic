@@ -2,7 +2,7 @@ import nbp
 import numpy as np
 import numpy.testing as npt
 
-from .tools import make_system
+from nbp.tests.tools import make_system
 
 
 def test_optimize_lj_finds_local_minimum():
