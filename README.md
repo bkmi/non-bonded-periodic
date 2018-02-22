@@ -36,13 +36,21 @@ optimized_sys = sys.optimize()
 simulated_sys = optimized_sys.simulate(states, temp)
 ```
 
+#### Measurement units
+
+All distances in Angstrom;  
+all energies in kJ/mol;  
+all masses in g/mol;  
+all charges are multiples of the positive elementary charge.
+
 #### Loading the parameters from a file
 
 A file can be used to store the starting parameters of the system. It must contain a dictionary with keys:
 
 > ['parameters', 'positions', 'types', 'box', 'readme']
 
-To load the parameters into the System, the Parser contained into nbp must be used, for example:
+The parameter fields are [sigma_Lj, epsilon_LJ, mass, charge].  
+To load the data into the System, the Parser contained into nbp must be used, for example:
 
 ```python
 import nbp.parser
