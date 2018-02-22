@@ -15,4 +15,4 @@ system = nbp.System(data['ch_length'],
                     data['pos'],
                     reci_cutoff=10, lj=True, ewald=True, use_neighbours=False)
 op_sys = system.optimize()
-simu_sys = op_sys.simulate(10000, 300)
+simu_sys = op_sys.simulate(1000, 200)
