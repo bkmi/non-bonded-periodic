@@ -4,6 +4,7 @@ from nbp.distance import *
 from scipy.spatial import distance_matrix
 import scipy as sp
 import scipy.stats
+import matplotlib.pyplot as plt
 import nbp
 
 class MCMC:
@@ -92,20 +93,11 @@ class Simulator:
         cov = self._system.info().sigma_lj/20
         num_particles = len(self._system.state().positions())
         indices_toMove = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
-        # print("moving particles: ", indices_toMove)
-        # print("starting positions:", "\n", self._system.state().positions()[indices_toMove])
-        # print("starting energy: ", self._system.state().energy_lj())
-        # indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
         proposal_state = self._metropolis(indices_toMove, cov)
-        # print("new positions:", "\n",  proposal_state.positions()[indices_toMove])
-        # print("new energy: ", proposal_state.energy_lj())
-        # proposal_state = self._metropolis(1, cov)
         if self._check(proposal_state, temperature):
             self._accepted_number += 1
-            # print("state accepted")
             return proposal_state
         else:
-            # print("state rejected")
             return self._system.state()
 
     def _check(self, state, temperature):
@@ -118,9 +110,7 @@ class Simulator:
         energy_prev = self._system.state().energy_lj()
         energy_prop = state.energy_lj()
         p_acc = np.min((1, np.exp(-beta * (energy_prop - energy_prev))))
-        # print("acceptance probability: ", p_acc)
         random_number = np.random.random()
-        # print("random number: ", random_number)
         if random_number <= p_acc:
             return True
         else:
@@ -357,19 +347,6 @@ class SystemState:
                                 )
                            )
             )
-            # for each in self.distance[np.nonzero(self.distance > 0)]:
-            #     self._energy_lj += self.lennard_jones(
-            #         self.system().info().sigma_lj,
-            #         self.system().info().epsilon_lj,
-            #         each
-            #     )
-            # # for i in range(len(self.positions)-1):
-            # #     self._energy_lj += self.lennard_jones(
-            # #         self.system.info.sigma_lj,
-            # #         self.system.info.epsilon_lj,
-            # #         self.distance[i, i+1]
-            # #     )
-            # # print("energy:", self._energy_lj)
         return self._energy_lj
 
 
@@ -420,13 +397,14 @@ if __name__ == '__main__':
     # # print(syst.state.energy_lj)
     analysis = Analyser(syst)
     # energy = analysis.get_energy(typ='lj')
-    analysis.plot_energy(typ='lj', hline={"yval": 0, "color": "r", "style": "--"})
-    analysis.plot_distribution(typ='energy')
-    # rdf = analysis.plot_distribution(typ='rdf', bins=500)
+    # analysis.plot_energy(typ='lj', hline={"yval": 0, "color": "r", "style": "--"})
+    # analysis.plot_distribution(typ='energy')
+    rdf = analysis.plot_distribution(typ='rdf', bins=500)
     # lj_gro = np.load(r"D:\Uni\Master\CompSci\lj_md\lj_300.npy")
     #print(np.equal(energy, lj_gro))
     # plt.figure()
-    # plt.plot(lj_gro[:,0], lj_gro[:,1])
+    plt.plot(rdf[:,0], rdf[:,1])
     # plt.plot(energy)
-    # plt.show()
+    plt.show()
+    print("finished")
     # plt.close()

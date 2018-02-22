@@ -80,22 +80,30 @@ class Optimizer:
 
 
 class Simulator:
-    """The class that simulates."""
+    """Simulation class"""
     def __init__(self, system):
+        """
+
+        :param system: (obj: nbp.System): An instance of the <nbp.System> class
+        """
         self._system = system
+        self._accepted_number = 0
 
     def act(self, temperature):
         """
         A method for returning proposal states in the MCMC
-            :parameter: temperature (float)
-                temperature in Kelvin [K]
+        Args:
+            temperature (float): Bath temperature in Kelvin
+
+        Returns:
+            proposal_state (obj: nbp.SystemState)
         """
-        cov = self._system.info().sigma()[0]/15
+        cov = self._system.info().sigma_lj/20
         num_particles = len(self._system.state().positions())
-        indices_toMove = np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))
-        # indices_toMove = list(set(np.random.randint(num_particles, size=np.random.randint(1, num_particles))))
+        indices_toMove = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
         proposal_state = self._metropolis(indices_toMove, cov)
         if self._check(proposal_state, temperature):
+            self._accepted_number += 1
             return proposal_state
         else:
             return self._system.state()
@@ -103,15 +111,16 @@ class Simulator:
     def _check(self, state, temperature):
         """
         A method for checking for the acceptance of the proposed state
-            :parameter: state (obj)
-            :parameter: temperature (float)
+            :param state:
+            :param temperature:
+
         """
-        _k_b = 8.6173303e-5
-        beta = 1/(_k_b * temperature)
-        energy_prev = self._system.state().energy()
-        energy_prop = state.energy()
-        p_acc = np.min((1, np.exp(beta * (energy_prop - energy_prev))))
-        if np.random.random() <= p_acc:
+        beta = 1
+        energy_prev = self._system.state().energy_lj()
+        energy_prop = state.energy_lj()
+        p_acc = np.min((1, np.exp(-beta * (energy_prop - energy_prev))))
+        random_number = np.random.random()
+        if random_number <= p_acc:
             return True
         else:
             return False
@@ -121,5 +130,9 @@ class Simulator:
         new_positions = np.copy(self._system.state().positions())
         new_positions[indices] += np.array(
             [sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs().tolist() for each in new_positions[indices]])
-        proposal_state = nbp.SystemState(new_positions, self._system)
+        proposal_state = nbp.SystemState(self._system, new_positions)
         return proposal_state
+
+    @property
+    def accepted_number(self):
+        return self._accepted_number

@@ -67,8 +67,8 @@ class Analyser:
             raise ValueError("Please specify a type of distribution to be plotted")
         if typ == 'rdf':
             if not self._rdf:
-                return self._get_rdf()
-            raise UserWarning("Hey there! Use with caution, the feature is not yet correctly implemented!")
+                self._rdf = self._get_rdf()
+                return self._rdf
 
         if typ == 'energy':
             energy, edges = self._energy_distribution()
@@ -221,10 +221,9 @@ class Analyser:
             ax = fig.add_subplot(111, projection='3d')
         return fig, ax
 
-    def _get_rdf(self, bins=100):
-        boxlen = self._system.info().box_dim()[0]
+    def _get_rdf(self, bins=300):
+        boxlen = self._system.info().box[0]
         boxlenh = boxlen/2
-        # distances = []
         dr = boxlenh/bins
         hist = [0]*(bins + 1)
         numstates = len(self._system.states())
@@ -238,7 +237,7 @@ class Analyser:
             for i in range(npart):
                 for j in range(i+1, npart):
                     rr = [R[0][i]-R[0][j], R[1][i]-R[1][j], R[2][i]-R[2][j]]  # calculate distances component-wise
-                    print(rr)
+                    # print(rr)
                     for each in rr:         # Minimum image convention
                         each = each + boxlen if each < -boxlenh else each
                         each = each - boxlen if each >= boxlenh else each
@@ -247,12 +246,11 @@ class Analyser:
                     if (bin <= bins):
                         hist[bin] += 1
         phi = npart/(boxlen**3)
-        norm = 2 * np.pi * phi * numstates * dr * npart
+        norm = 4 * np.pi * phi * numstates * dr * npart / 3
         for i in range(1, bins):
             rrr = (i - 0.5) * dr
-            val = hist[i]/ norm / ((rrr**2) + (dr**2) / 12.0)
+            val = hist[i] / norm / ((rrr**2) - (dr**2))
             rdf[i, 0], rdf[i, 1] = rrr, val
-
         return rdf
 
     def _energy_distribution(self):
