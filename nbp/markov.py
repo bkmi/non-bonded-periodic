@@ -98,41 +98,58 @@ class Simulator:
         Returns:
             proposal_state (obj: nbp.SystemState)
         """
-        cov = self._system.info().sigma_lj/20
+        cov = np.max(self._system.info().sigma_eff())/15
         num_particles = len(self._system.state().positions())
-        indices_toMove = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
-        proposal_state = self._metropolis(indices_toMove, cov)
-        if self._check(proposal_state, temperature):
+        indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
+        proposal_state, proposal_energy = self._metropolis(indices_to_move, cov)
+        starting_energy = self._system.state().energy()
+        if self._check(temperature, proposal_energy, starting_energy):
             self._accepted_number += 1
             return proposal_state
         else:
             return self._system.state()
 
-    def _check(self, state, temperature):
-        """
-        A method for checking for the acceptance of the proposed state
-            :param state:
-            :param temperature:
+    @staticmethod
+    def _check(temperature, energy_prop, energy_prev):
+        """A method for checking for the acceptance of the proposed state.
 
+            :param temperature: (float)
+                                The temperature of the heat bath
+
+            :param energy_prop: (float)
+                                The energy of the proposed state
+
+            :param energy_prev: (float)
+                                The energy of the starting state
+
+            :return bool: Returns True if the state is accepted and False if rejected
         """
-        beta = 1
-        energy_prev = self._system.state().energy_lj()
-        energy_prop = state.energy_lj()
+        _k_b = 8.6173303e-5     # Boltzmann constant in Gaussian units [eV/K]
+        beta = 1/(_k_b*temperature)     # reciprocal of thermal energy in [eV]
         p_acc = np.min((1, np.exp(-beta * (energy_prop - energy_prev))))
-        random_number = np.random.random()
-        if random_number <= p_acc:
+        if np.random.random() <= p_acc:
             return True
         else:
             return False
 
     def _metropolis(self, indices, cov):
-        """Proposes the new states"""
+        """Proposes the new states
+
+            :param indices: (list)
+                A list containing the indices of moving particles
+            :param cov: (float)
+                Covariance for defining the multivariate normal
+            :return (proposal state, proposal energy):  (nbp.State, float)
+                An nbp.State instance as well as its energy
+        """
         new_positions = np.copy(self._system.state().positions())
         new_positions[indices] += np.array(
-            [sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs().tolist() for each in new_positions[indices]])
-        proposal_state = nbp.SystemState(self._system, new_positions)
-        return proposal_state
+            [sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs().tolist() for _ in range(len(indices))])
+        proposal_state = nbp.SystemState(new_positions, self._system)
+        proposal_energy = proposal_state.energy()
+        return proposal_state, proposal_energy
 
     @property
     def accepted_number(self):
+        """"""
         return self._accepted_number

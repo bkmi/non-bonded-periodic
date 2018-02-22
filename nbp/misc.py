@@ -1,25 +1,23 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-from scipy.stats import multivariate_normal
 import time
-from numba import jit
-from scipy.spatial import distance_matrix
 
 
-def show_frame(system, frame=None):
-    """a function to visualize the particles in 3d"""
 
-    states = system.states()
-    if frame:
-        positions = states[frame].positions()    # select a particular frame
-    else:
-        positions = states[-1].positions()     # by default show last frame
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    X, Y, Z = positions[:, 0], positions[:, 1], positions[:, 2]
-    ax.scatter(X, Y, Z)
-    plt.show()
+# def show_frame(system, frame=None):
+#     """a function to visualize the particles in 3d"""
+#
+#     states = system.states()
+#     if frame:
+#         positions = states[frame].positions()    # select a particular frame
+#     else:
+#         positions = states[-1].positions()     # by default show last frame
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111, projection='3d')
+#     X, Y, Z = positions[:, 0], positions[:, 1], positions[:, 2]
+#     ax.scatter(X, Y, Z)
+#     plt.show()
 
 
 class Analyser:
@@ -35,19 +33,31 @@ class Analyser:
 
     """
 
-    def __init__(self, system=None, states=None):
+    def __init__(self, system=None, positions=None):
         """Initialization
         Kwargs:
             system (obj: <nbp.System>): An instance of the <nbp.System> class
 
             states (obj: <list> of obj: <nbp.SystemState>): A list of instances of <nbp.SystemState> class
         """
+        if not isinstance(system, nbp.System):
+            pass
+
+        if system is None and positions is None:
+            raise ValueError("Please Provide either an nbp.System class instance or a positions array for initialization")
+
+        if positions:
+
+
+
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
         self._system = system
         self._states = self._system.states()
         self._rdf = None
-        self._energy = {}
+        self._energy_lj = None
+        self._energy_coul = None
+        self._energy_tot = None
 
     def plot_distribution(self, typ=None, show=True, save=False, filename=None, fmt='png', **kwargs):
         """Distribution plotting method:
@@ -117,19 +127,12 @@ class Analyser:
             if show:
                 plt.show()
 
-    def play_frames(self, start=None, end=None, dt=None):
+    def play_frames(self, dt=None):
         """a function to play generated frames in 3d"""
         pausetime = dt or 0.01
         fig, ax = self._create_figure(subplots=1, split_axes=1, axes3d=True)
         states = self._states
         sframe = None
-        # if start and end:
-        #     playtime = range(start, end)
-        # elif start and not end:
-        #     playtime = range(start, len(states))
-        # elif end and not start:
-        #     playtime = range(0, end)
-        #     playtime = range(len(positions))
         for frame, state in enumerate(states):
             ax.set_title("frame: {}".format(frame))
             positions = state.positions()
@@ -141,28 +144,31 @@ class Analyser:
         plt.close()
 
     def get_energy(self, typ):
-        """A method for getting the requested type of energy"""
-        if typ == 'total' or 1:
+        """A method for getting the requested type of energy
 
+            :param typ: (string)
+                a string specifying the type of energy to fetch
+                options:
+                    <total>     Total energy
+                    <coulomb>   Coulomb interaction energy
+                    <lj>        Wan der Waals interraction energy
+
+            :returns (energy_list, average): (list of float, float)
+                a list containing energies for each state
+                a float for the average energy
+        """
+        if typ == 'total' or 1:
             energy_list = list(map(lambda x: x.energy_lj(), self._states))
-            print(energy_list)
             average = np.mean(energy_list)
-            print(average)
             return energy_list, average
         elif typ == 'lj' or 2:
             energy_list = list(map(lambda x: x.energy_lj(), self._states))
-            print(energy_list)
             average = np.mean(energy_list)
-            print(average)
             return energy_list, average
-
         elif typ == 'coulomb' or 3:
             energy_list = list(map(lambda x: x.energy_ewald(), self._states))
-            print(energy_list)
             average = np.mean(energy_list)
-            print(average)
             return energy_list, average
-
 
     def _setup_figure(self, typ, hline=None, **kwargs):
         """Private method that takes care of the figure creation,
@@ -221,6 +227,25 @@ class Analyser:
             ax = fig.add_subplot(111, projection='3d')
         return fig, ax
 
+
+    def _get_rdf_2(self, bins=100):
+        box_length = self._system.info().box[0]
+        box_lenh = box_length / 2
+        dr = box_lenh/bins
+        histogram = [0]*(bins+1)
+        states_count = len(self._system.states())
+        particle_num = self._system.info().num_particles()
+        rdf = np.zeros(shape=(bins, 2))
+        number_density = particle_num / box_length**3
+        norm = (4 / 3) * np.pi * number_density * states_count * dr
+        for each in self._system.states():
+            distances = each.wrap_distances(each.wrap_positions(each._positions))
+            distances = distances[np.nonzero(np.triu(distances) > 0)]
+            for each in distances:
+                bin = int(np.ceil(each / dr))
+                if (bin <= bins):
+                    histogram[bin] += 1
+
     def _get_rdf(self, bins=300):
         boxlen = self._system.info().box[0]
         boxlenh = boxlen/2
@@ -246,10 +271,10 @@ class Analyser:
                     if (bin <= bins):
                         hist[bin] += 1
         phi = npart/(boxlen**3)
-        norm = 4 * np.pi * phi * numstates * dr * npart / 3
+        norm = (4 / 3) * np.pi * phi * numstates * dr * npart
         for i in range(1, bins):
-            rrr = (i - 0.5) * dr
-            val = hist[i] / norm / ((rrr**2) - (dr**2))
+            rrr = (i - 0.1) * dr
+            val = hist[i] / (norm) / (rrr + dr)**3
             rdf[i, 0], rdf[i, 1] = rrr, val
         return rdf
 

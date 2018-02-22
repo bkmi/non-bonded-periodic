@@ -19,6 +19,7 @@ class Parser:
     __SIGMA = 0
     __EPSILON = 1
     __MASS = 2
+    __CHARGE = 3
 
     def __init__(self, file='sodium-chloride-example.npz'):
         """The initialisation function.
@@ -62,14 +63,16 @@ class Parser:
         sigma = []
         epsilon = []
         mass = []
+        charge = []
         for i in range(len(self.types)):
             par = self.parameters[self.types[i]]
             sigma.append(par[Parser.__SIGMA])
             epsilon.append(par[Parser.__EPSILON])
             mass.append(par[Parser.__MASS])
+            charge.append(par[Parser.__CHARGE])
 
         return {'ch_length': max(self.box), 'pos': np.asarray(self.positions), 'sigma': np.asarray(sigma),
-                'epsilon': np.asarray(epsilon), 'mass': np.asarray(mass),
+                'epsilon': np.asarray(epsilon), 'mass': np.asarray(mass), 'charge' : np.asarray(charge),
                 'type': np.asarray(self.types), 'param': self.parameters}
 
     pass
