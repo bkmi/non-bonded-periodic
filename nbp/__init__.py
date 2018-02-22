@@ -26,6 +26,7 @@ from .neighbours import *
 from .sysmodule import *
 from .distance import *
 from .unitconvert import *
+from .parser import *
 
 from functools import wraps
 from time import time
