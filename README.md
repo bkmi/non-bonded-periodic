@@ -60,7 +60,7 @@ data = Parser("file.npz").parse()
 characteristic_length = data['ch-length']
 sigma = data['sigma'][:, None]
 epsilon = data['epsilon'][:, None]
-charge = data['charge][:, None]
+charge = data['charge'][:, None]
 positions = data['pos']
 ```
 
@@ -75,4 +75,4 @@ Theresa Kiszler
 Ludovica Lombardi  
 Benjamin Miller  
 Alexey Shestakov  
-Chris Weiss
+(Chris Weiss)
