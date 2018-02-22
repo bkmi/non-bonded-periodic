@@ -463,7 +463,7 @@ class SystemState:
 
         :return: instance of class Distance"""
         if self._distance is None:
-            self._distance = nbp.Distance(self.system())
+            self._distance = nbp.Distance(self)
         return self._distance
 
     @staticmethod
@@ -518,7 +518,6 @@ class SystemState:
                     self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
-                self._energy_lj = np.sum(np.triu(self._potential_lj))
         return self._potential_lj
 
     def energy_lj(self):
