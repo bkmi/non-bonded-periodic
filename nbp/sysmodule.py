@@ -479,11 +479,13 @@ class SystemState:
 
         :return float
                 the Lennard Jones potential between the two particles."""
+        if sigma < 0:
+            raise AttributeError('Sigma can\'t be smaller than zero')
 
         if distance != 0:
             q = (sigma / distance)**6
         else:
-            q = 0                   # ToDo: Like this Ben?
+            q = 0
 
         return 4.0 * epsilon_lj * (q * (q - 1))
 
@@ -525,7 +527,10 @@ class SystemState:
         :return float
                 the total energy through Lennard Jones Potential."""
         if self._energy_lj is None:
-            self.potential_lj()
+            if self.system().info().use_neighbours():
+                self.potential_lj()
+            else:
+                self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
         return self._energy_lj
 
     def forces_lj(self):
