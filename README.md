@@ -23,7 +23,14 @@ Additional parts are to support, e.g. the misc and the neighbours class
 
 
 ## Operating instructions
-TODO
+```python
+import nbp
+
+sys = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions, 
+                 lj=True, ewald=True, use_neighbours=True)
+optimized_sys = sys.optimize()
+simulated_sys = optimized_sys.simualte(states, temp)
+```
 
 ---
 
