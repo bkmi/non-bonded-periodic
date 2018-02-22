@@ -387,17 +387,17 @@ class SystemState:
                         the LJ potential between all the particles.
         _energy_lj: float
                     the energy calculated using Lennard Jones.
-        _forces_lj: NOIDEA
+        _forces_lj: ndarray
                     the forces calculated using Lennard Jones.
-        _potential_ewald:   NOIDEA
+        _potential_ewald:   ndarray
                             the potential calculated using Ewald's summation.
-        _forces_ewald:  NOIDEA
+        _forces_ewald:  ndarray
                         the forces calculated using Lennard Jones.
         _potential: float CREDO
                     the total potential.
         _energy:    float
                     the total system's energy.
-        _forces:    NOIDEA
+        _forces:    ndarray
                     the forces in the whole system.
     """
 
@@ -533,7 +533,7 @@ class SystemState:
     def forces_lj(self):
         """Calculates the forces acting on every particle.
 
-        :return NOIDEA
+        :return ndarray
                 the forces acting on every particle."""
         if self._forces_lj is None:
             if self.system().info().use_neighbours():
