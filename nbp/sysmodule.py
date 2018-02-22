@@ -120,14 +120,15 @@ class System:
         :arg
             max_steps:  int, optional (default = 500)
                         the maximum number of steps that the optimizer can make before stopping.
-            cov:    I HAVE NO IDEA, optional (default = None)
-                    KEEP HAVING NO IDEA
-            d_energy_tol:   float , optional (default = 1e-6)
-                            I HAVE NO IDEA
+            cov:  float, optional (default = system().info().cutoff/27)
+                  Covariance times identify matrix for size of proposal gaussian
+            d_energy_tol:   float, optional (default = 1e-6)
+                            Energy difference to be considered in the same state.
             no_progress_break: int, optional (default = 250)
-                                I HAVE NO IDEA
-            num_particles:  float, optional (default = 0.25)
-                            I HAVE NO IDEA, I SUPPOSED IT'S THE NUMBER OF PARTICLES, BUT 0.25 DOESN'T MAKE SENSE
+                               Number of iterations if convergence fails
+            num_particles:  int OR float, optional (default = 0.25)
+                            int: number of particles to move with each step
+                            float: percentage of particles to move with each step
 
         :return
             SystemState
@@ -376,7 +377,7 @@ class SystemState:
 
     Instance attributes:
         _verbose:   Boolean
-                    I HAVE NO IDEA
+                    If True, the system prints out information as it calculates.
         _system:    System
                     the system containing this systemState.
         _positions: ndarray
