@@ -22,16 +22,24 @@ class Neighbours:
     This class is used to evaluate the position of
     particles to each others. The system must be big enough to
     contain at least 3 subcells per row.
+    
     Private Functions:
-    __init__, _create_subcells, _create_neighbours, _find_subcell,
+    __init__, _create_subcells, _create_neighbours, _find_subcell, 
+    _neighbours_for_one, _create_neigbours_frame, _get_neighbours_frame,
     _get_neighbour_subcell, _3d_subcell_id, _cell_y, _cell_z
+    
     Public Functions:
     update_neighbours, get_neighbours
     """
     def __init__(self, system_info, system_state, system, verbose=False):
         """
-        Instantiates a new Object of class Neighbours
-        :system: Instance of class System
+        Instantiates a new Object of class Neighbours.
+        
+        :param system_info: Instance of class System Info
+        :param system_state: Instance of class System State
+        :param system: Instance of class System
+        :param verbose: boolean (default: False)
+                        Indicates if output of Neighbours should be printed.
         """
         self._verbose = verbose
         self.SystemInfo = system_info
@@ -59,6 +67,7 @@ class Neighbours:
         """
         Calculates the length of the subcells based on the skin radius.
         This helps to avoid having to update every time.
+        
         :return: length of subcell
         """
         # calculate subcell size.
@@ -77,6 +86,7 @@ class Neighbours:
         contains the starting index for the particles in a box.
         The neighbour list itself contains the index of the particles
         which belong to each box.
+        
         :return: neighbour list
         """
         # get number of particles in the system
@@ -108,7 +118,9 @@ class Neighbours:
         """
         Private module of object neighbours. Finds the number of the
         subcell in which a particle is positioned.
+        
         :param position: position of a particle
+        
         :return: subcell_id
         """
 
@@ -137,8 +149,11 @@ class Neighbours:
     def update_neighbours(self):
         """
         Updates the neighbour list with the new system_state.
+        Update of list is only done if the particle have moved far enough.
+        Update of the dictionary "neighbours_frame" is done every time.
         System state (e.g. box length etc) should be the same.
-        :return:new neighbour list.
+        
+        :return: new neighbour list
         """
         # update the frame each time:
         self._create_neighbours_frame()
@@ -170,9 +185,11 @@ class Neighbours:
     def _neighbours_for_one(self, particle_ID):
         """
         Calculate which neighbours are around the particle.
-        Calculates the distance between a particle and its neighbours
-        :param particle_pos: 3d coordinates of single particle
-        :return: array of neighbour particles ID and array with distances
+        Calculates the distance between a particle and its neighbours.
+        
+        :param particle_ID: particle ID from system 
+        
+        :return: named tuple containing list of neighbour particles ID and distances
         """
         positions = self.SystemState.positions()
         particle_pos = positions[particle_ID]
@@ -196,8 +213,6 @@ class Neighbours:
                 index = int(self._neighbour_list[index])
 
         nb_length = np.shape(neighbours)[0]
-        # if self._verbose:
-          #  print("neighbour length:", nb_length)
 
         # get distance from particle to neighbours
         for i in range(nb_length):
@@ -220,8 +235,7 @@ class Neighbours:
                 distance_3d = np.array([x_distance, y_distance, z_distance])
 
                 distance = np.linalg.norm(distance_3d)
-                # if self._verbose:
-                    # print("distance: ", distance)
+
                 # distance no further than cutoff radius:
                 if 0 < distance <= self.SystemInfo.cutoff():
                     neighbours_distance.append(distance)
@@ -302,6 +316,7 @@ class Neighbours:
         Call the whole frame that contains the neighbours for every particle and
         the distances. Only meant for testing purposes but can be changed to a public
         function if necessary.
+        
         :return: dictionary
         """
         return {'IDs': self._neighbours_frame_IDs, 'Distance': self._neighbours_frame_dist}
@@ -310,8 +325,10 @@ class Neighbours:
         """
         This gets the neighbours of a single particle and the distances to
         its neighbours.
-        :param particle_ID: particle number
-        :return:
+        
+        :param particle_ID: particle ID in system
+        
+        :return: named tuple containing neighbours and distances
         """
         key = particle_ID
         if key in self._neighbours_frame_IDs.keys():
@@ -330,8 +347,11 @@ class Neighbours:
         To fulfill periodic boundary conditions, the subcell IDs
         are first calculated in 3D and subcell IDs which are
         out of bound are corrected.
-        :param particle_pos: 3d position of single particle
-        :return: neighbours
+        
+        :param particle_pos: array with length 27
+                             3d position of single particle
+        
+        :return: neighbours subcells
         """
 
         m = self._subcells_inrow  # makes code easier to read
@@ -391,7 +411,9 @@ class Neighbours:
     def _3d_subcell_id(self, particle_pos):
         """
         Create subcell ID in 3d for a particle
+        
         :param particle_pos: 3d coordinates of single particle
+        
         :return: 3d-subcell ID
         """
         subcell_id_3d = np.zeros(3)
@@ -403,9 +425,11 @@ class Neighbours:
     def _cell_y(self, positive, particle_pos):
         """
         Calculates the subcell id for the y axis
+        
         :param positive: boolean, if True the subcell id in positive
                         direction will be calculated
         :param particle_pos: 3d coordinates of single particle
+        
         :return: subcell id for y axis
         """
         if positive == 0:
@@ -417,9 +441,11 @@ class Neighbours:
     def _cell_z(self, positive, particle_pos):
         """
         Calculates the subcell id for the y axis
+        
         :param positive: boolean, if True the subcell id in positive
                          direction will be calculated
         :param particle_pos: 3d coordinates of a single particle
+        
         :return: subcell id for y axis
         """
         if positive == 0:

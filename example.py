@@ -13,7 +13,7 @@ def setup(specific_pos=False, use_neighbours=False):
                                  [0, 1, 2 ** (-1 / 2)],
                                  [0, -1, 2 ** (-1 / 2)]]) + characteristic_length / 2)
     else:
-        positions = np.random.rand(4, 3) * characteristic_length
+        positions = np.random.rand(100, 3) * characteristic_length
     system = make_system(characteristic_length=characteristic_length, positions=positions, lj=True, ewald=True,
                          use_neighbours=use_neighbours, reci_cutoff=5)
     return system

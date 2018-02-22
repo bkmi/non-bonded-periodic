@@ -13,7 +13,7 @@ class Parser:
         types:  ndarray
                 n-dimensional array containing the type of each particle
         parameters: dict
-                    [sigma, epsilon and mass] for each particle type
+                    [sigma, epsilon, mass, charge] for each particle type
         """
 
     __SIGMA = 0
