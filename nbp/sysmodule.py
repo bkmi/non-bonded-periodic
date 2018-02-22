@@ -7,10 +7,12 @@ from scipy.special import erfc
 
 class System:
     """This class represents the system itself: the box and its content.
+
     It's a wrapper containing SystemInfo and all the SystemStates, mostly. Unless stated, all the attributes in
     the form of an array or a matrix follow the following convention:
         information[i] contains information about the particle i
         pairInformation[i][j] contains information about the relation between particle i and j (e.g. the distance).
+
     Attributes:
         particle_charges:   ndarray
                             the charges of the particle.
@@ -27,9 +29,10 @@ class System:
                 the actor who simulate or optimize the system.
     """
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions, reci_cutoff,
-                 lj=True, ewald=True, use_neighbours=False):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+                 reci_cutoff=5, lj=True, ewald=True, use_neighbours=False, epsilon0=1):
         """The initialize function.
+
         :param  characteristic_length:  float
                                        the characteristic length.
         :param  sigma:  ndarray
@@ -62,15 +65,18 @@ class System:
         if not (positions.shape[0] == epsilon_lj.shape[0]):
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
-        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, self,
-                                      lj=lj, ewald=ewald, use_neighbours=use_neighbours)
+        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
+                                      reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours,
+                                      epsilon0=epsilon0)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
 
     def update_state(self, new_state):
         """Appends the new state to the systemStates list.
+
         :param  new_state:  SystemState
                         the state at step len(self._systemState) + 1.
+
         :return nothing
         """
         if isinstance(new_state, SystemState):
@@ -82,6 +88,7 @@ class System:
 
     def info(self):
         """Gives the static information about the system.
+
         :return
             SystemInfo
             the object containing all the static information about the system.
@@ -90,6 +97,7 @@ class System:
 
     def state(self):
         """Gives the current dynamic information about the system.
+
         :return
             SystemState
             the object containing all the dynamic information about the system.
@@ -98,6 +106,7 @@ class System:
 
     def states(self):
         """Gives all the dynamic information past and present about the system.
+
         :return
             list
             a list containing all the states of the system, past and present.
@@ -107,17 +116,20 @@ class System:
     # def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.25):
     def optimize(self, *args, **kwargs):
         """Optimize the system to a lower energy level.
+
         :arg
             max_steps:  int, optional (default = 500)
                         the maximum number of steps that the optimizer can make before stopping.
-            cov:    I HAVE NO IDEA, optional (default = None)
-                    KEEP HAVING NO IDEA
-            d_energy_tol:   float , optional (default = 1e-6)
-                            I HAVE NO IDEA
+            cov:  float, optional (default = system().info().cutoff/27)
+                  Covariance times identify matrix for size of proposal gaussian
+            d_energy_tol:   float, optional (default = 1e-6)
+                            Energy difference to be considered in the same state.
             no_progress_break: int, optional (default = 250)
-                                I HAVE NO IDEA
-            num_particles:  float, optional (default = 0.25)
-                            I HAVE NO IDEA, I SUPPOSED IT'S THE NUMBER OF PARTICLES, BUT 0.25 DOESN'T MAKE SENSE
+                               Number of iterations if convergence fails
+            num_particles:  int OR float, optional (default = 0.25)
+                            int: number of particles to move with each step
+                            float: percentage of particles to move with each step
+
         :return
             SystemState
             the optimized state
@@ -126,11 +138,13 @@ class System:
 
     def simulate(self, *args, **kwargs):
         """Simulate the system at a given temperature
+
         :arg
             steps:  int
                     the number of steps to simulate
             temperature:    float
                             the temperature at which the system has to be simulated (in K)
+
         :return
             SystemState
             the state after steps number of steps"""
@@ -139,9 +153,11 @@ class System:
 
 class SystemInfo:
     """This class represents all the static information of the system.
+
     Unless stated, all the attributes in the form of an array or a matrix follow the following convention:
         information[i] contains information about the particle i
         pairInformation[i][j] contains information about the relation between particle i and j (e.g. the distance).
+
     Attributes:
         _char_length:   float
                         the length of side of the cubic box
@@ -169,9 +185,10 @@ class SystemInfo:
                             if True, the neighbourlist is implemented.
     """
 
-    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, reci_cutoff, system,
-                 lj=None, ewald=None, use_neighbours=None):
+    def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
+                 reci_cutoff=None, lj=None, ewald=None, use_neighbours=None, epsilon0=None):
         """Initialization function.
+
         :param characteristic_length:  float
                                        the length of the cubic box's side.
         :param  sigma:  ndarray
@@ -188,6 +205,7 @@ class SystemInfo:
                         if True, Ewald's summation is used in the energies calculations.
         :param  _use_neighbours:    Boolean
                                     if True, the neighbourlist is implemented.
+
         """
         self._sigma = np.asarray(sigma)
         self._worse_sigma = np.max(sigma)
@@ -197,13 +215,14 @@ class SystemInfo:
         self._epsilon_lj = np.asarray(epsilon_lj)
         self._epsilon_lj_eff = np.sqrt(np.reshape(self._epsilon_lj, -1)[None, :]**2 +
                                        np.reshape(self._epsilon_lj, -1)[:, None]**2)
-        self._epsilon0 = 1
+        self._epsilon0 = epsilon0
 
         self._particle_charges = np.asarray(particle_charges)
         self._char_length = np.ceil(characteristic_length/self._cutoff_radius) * self._cutoff_radius
         self._system = system
 
         # k vectors
+        self._reci_cutoff = reci_cutoff
         self._k_vectors = []
         for x in range(reci_cutoff):
             for y in range(-reci_cutoff, reci_cutoff, 1):
@@ -231,18 +250,21 @@ class SystemInfo:
 
     def system(self):
         """Returns the system containing self.
+
         :return System
                 the system containing self."""
         return self._system
 
     def char_length(self):
         """Return the characteristic length of the box.
+
         :return float
                 the characteristic length of the box."""
         return self._char_length
 
     def box_dim(self):
         """Returns the box dimensions.
+
         :return list
                 the three dimension of the box as a list: each cell is a
                 dimension of the box containing the system [W, L, H]"""
@@ -250,36 +272,42 @@ class SystemInfo:
 
     def volume(self):
         """Returns the volume of the cell.
+
         :return float
                 the volume of the box."""
         return self._char_length ** 3
 
     def cutoff(self):
         """Returns the value chosen for the cutoff radius.
+
         :return float
                 the cutoff radius"""
         return self._cutoff_radius
 
     def sigma_eff(self):
         """Returns the matrix containing all the sigma relative to the particles couples
+
         :return ndarray
                 an array of arrays, each cell [i][j] contains sigma_ij"""
         return self._sigma_eff
 
     def sigma(self):
         """Returns all the particles' sigmas
+
         :return ndarray
                 an array containing each particle's sigma"""
         return self._sigma
 
     def worse_sigma(self):
         """Returns the maximum value of all the particles' couples' sigmas.
+
         :return float
                 the biggest sigma."""
         return self._worse_sigma
 
     def epsilon0(self):
         """Returns the physical constant epsilon.
+
         :return float
                 epsilon"""
         return self._epsilon0
@@ -289,55 +317,67 @@ class SystemInfo:
 
     def epsilon_lj(self):
         """Returns all the particles' epsilon.
+
         :return ndarray
                 an array containing each particle's epsilon."""
         return self._epsilon_lj
 
     def epsilon_lj_eff(self):
         """Returns the matrix containing all the epsilons relative to the particles couples
+
         :return ndarray
                 an array of arrays, each cell [i][j] contains epsilon_ij"""
         return self._epsilon_lj_eff
 
     def particle_charges(self):
         """Returns all the particles' charges.
+
         :return ndarray
                 an array containing each particle's charge."""
         return self._particle_charges
 
     def use_neighbours(self):
         """Flag saying if the neighbours must be used.
+
         :return Boolean
                 if True, the neighbourlist is being used."""
         return self._use_neighbours
 
     def lj(self):
         """Flag saying if LJ potential is used in the calculations.
+
         :return Boolean
                 if True, LJ potential is used in the calculations."""
         return self._lj
 
     def ewald(self):
         """Flag saying if Ewald summation is used in the calculations.
+
         :return Boolean
                 if True, Ewald's summation is used in the calculations."""
         return self._ewald
 
     def num_particles(self):
         """Returns the number of particles of the system.
+
         :return int
                 the number of particles."""
         return self.particle_charges().shape[0]
 
+    def reci_cutoff(self):
+        return self._reci_cutoff
+
 
 class SystemState:
     """Contains all the dynamic information about the system.
+
     Unless stated, all the attributes in the form of an array or a matrix follow the following convention:
         information[i] contains information about the particle i
         pairInformation[i][j] contains information about the relation between particle i and j (e.g. the distance).
+
     Instance attributes:
         _verbose:   Boolean
-                    I HAVE NO IDEA
+                    If True, the system prints out information as it calculates.
         _system:    System
                     the system containing this systemState.
         _positions: ndarray
@@ -366,12 +406,14 @@ class SystemState:
 
     def __init__(self, positions, system, verbose=False):
         """
+
+
         :param positions:   ndarray
                             the positions of the particles.
         :param system:  System
                         the system containing self.
         :param verbose: Boolean
-                        I HAVE NO IDEA.
+                        Indicates if output of neighbours() should be printed.
         """
         self._verbose = verbose
         self._system = system
@@ -393,12 +435,23 @@ class SystemState:
 
     def system(self):
         """Returns the system containing self.
+
         :return System
                 the system containing self."""
         return self._system
 
+    def positions(self):
+        """Returns the current particle positions.
+
+        :return ndarray
+                the particles's positions."""
+        self._positions = nbp.periodic_particles_stay_in_box(self._positions, self.system().info().char_length())
+
+        return self._positions
+
     def neighbours(self):
         """Creates or returns an instance of the class Neighbours.
+
         :return: Instance of neighbours"""
         if self._neighbours is None:
             self._neighbours = nbp.Neighbours(self.system().info(), self.system().state(), self.system(),
@@ -407,6 +460,7 @@ class SystemState:
 
     def distance(self):
         """Initialize class distance for later use.
+
         :return: instance of class Distance"""
         if self._distance is None:
             self._distance = nbp.Distance(self.system())
@@ -415,32 +469,29 @@ class SystemState:
     @staticmethod
     def calc_potential_lj(distance, epsilon_lj, sigma):
         """Calculates the potential between a couple of particles with a certain distance and a set sigma
+
         :param distance:    float
                             the distance between the two particles.
         :param epsilon_lj:  float
                             epsilon between the two particles.
         :param sigma:   float
                         sigma between the two particles.
+
         :return float
                 the Lennard Jones potential between the two particles."""
+        if sigma < 0:
+            raise AttributeError('Sigma can\'t be smaller than zero')
 
         if distance != 0:
             q = (sigma / distance)**6
         else:
-            q = 0                   # ToDo: Like this Ben?
+            q = 0
 
         return 4.0 * epsilon_lj * (q * (q - 1))
 
-    def positions(self):
-        """Returns the current particle positions.
-        :return ndarray
-                the particles's positions."""
-        self._positions = nbp.periodic_particles_stay_in_box(self._positions, self.system().info().char_length())
-
-        return self._positions
-
     def potential_lj(self):
         """Calculates the Lennard-Jones potential between each couple of particles.
+
         :return ndarray
                 an array of arrays containing the potential between each couple of particles."""
         if self._potential_lj is None:
@@ -467,18 +518,24 @@ class SystemState:
                     self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
+                self._energy_lj = np.sum(np.triu(self._potential_lj))
         return self._potential_lj
 
     def energy_lj(self):
         """Calculates the energy through Lennard Jones Potential.
+
         :return float
                 the total energy through Lennard Jones Potential."""
         if self._energy_lj is None:
-            self.potential_lj()
+            if self.system().info().use_neighbours():
+                self.potential_lj()
+            else:
+                self._energy_lj = np.sum(np.triu(self.potential_lj(), k=1))
         return self._energy_lj
 
     def forces_lj(self):
         """Calculates the forces acting on every particle.
+
         :return NOIDEA
                 the forces acting on every particle."""
         if self._forces_lj is None:
@@ -490,6 +547,7 @@ class SystemState:
 
     def potential_ewald(self):
         """Calculates the potential through Ewald summation.
+
         :return float
                 the potential calculated through Ewald summation."""
         if self._potential_ewald is None:
@@ -501,6 +559,7 @@ class SystemState:
 
     def energy_ewald(self):
         """Calculates the energies using Ewald summation.
+
         :return float
                 the total energy calculated through Ewald summation."""
         # Switch on columb versus lj
@@ -587,20 +646,10 @@ class SystemState:
             L = self.system().info().char_length()
             V = self.system().info().volume()
             cutoff = self.system().info().cutoff()
+            k_vectors = self.system().info().k_vectors()
             forces_abs = []
             forces_near = []
             forces_far = []
-
-            k_vectors = []
-            reci_cutoff = 10
-            for x in range(reci_cutoff):
-                for y in range(-reci_cutoff, reci_cutoff, 1):
-                    for z in range(-reci_cutoff, reci_cutoff, 1):
-                        test = x + y + z
-                        if test != 0:
-                            k = [x, y, z]
-                            k = [i * (2 * np.pi / L) for i in k]
-                            k_vectors.append(k)
 
             # forces resulting from short energy
             for i in range(len(pos)):
@@ -680,7 +729,6 @@ class SystemState:
 
         if self._energy is None:
             self._energy = 0
-            # print('energy:', type(self._energy))
             if lj:
                 self._energy += self.energy_lj()
             if ewald:
@@ -692,7 +740,7 @@ class SystemState:
                                          ewald=self.system().info().ewald())
 
         if self._forces is None:
-            self._forces = np.zeros(self.system().info().num_particles(), 3)
+            self._forces = np.zeros((self.system().info().num_particles(), 3))
             if lj:
                 self._forces += self.energy_lj()
             if ewald:

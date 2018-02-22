@@ -23,6 +23,6 @@ def make_system(characteristic_length=10,
     if positions is None:
         positions = characteristic_length * np.random.rand(particle_count, 3)
 
-    system = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions, reci_cutoff,
-                        lj=lj, ewald=ewald, use_neighbours=use_neighbours)
+    system = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions,
+                        reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours)
     return system
