@@ -2,9 +2,10 @@
 
 A Python package for non-bonded interactions in periodic systems.
 
-The method used to simulate the system is Markov Chain Montecarlo. Before the simulation starts, the system is optimized until its point of minimum energy. Then the simulation starts. INFORMATIONS ABOUT TIME STEPS, INFORMATION ABOUT TEMPERATURE.
+The method used to simulate the system is Markov Chain Montecarlo (MCMC). Before the simulation starts, the system is optimized until its point of minimum energy. Then the simulation starts. As the system is simulated through MCMC, it does not evolve in time, but just samples from a probability distribution.
+It is possible to simulate the system at a certain temparature.
 
-The energy is calculated using either Lennard Jones Potential, Ewald Summation or both.
+The energy is calculated using either Lennard-Jones Potential, Ewald Summation or both.
 There's the option to use neighbourlist techniques to cut the calculations.
 
 
