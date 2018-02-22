@@ -57,7 +57,7 @@ import nbp.parser
 
 data = Parser("file.npz").parse()
 
-characteristic_length = data['ch-length']
+characteristic_length = data['ch_length']
 sigma = data['sigma'][:, None]
 epsilon = data['epsilon'][:, None]
 charge = data['charge'][:, None]
