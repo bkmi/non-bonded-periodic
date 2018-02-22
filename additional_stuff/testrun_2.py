@@ -90,7 +90,7 @@ class Simulator:
             :parameter: temperature (float)
                 temperature in Kelvin [K]
         """
-        cov = self._system.info().sigma_lj/20
+        cov = self._system.info().sigma_lj[0]/20
         num_particles = len(self._system.state().positions())
         indices_toMove = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
         proposal_state = self._metropolis(indices_toMove, cov)
@@ -107,8 +107,8 @@ class Simulator:
             :parameter: temperature (float)
         """
         beta = 1
-        energy_prev = self._system.state().energy_lj()
-        energy_prop = state.energy_lj()
+        energy_prev = self._system.state().lj_energy()
+        energy_prop = state.lj_energy()
         p_acc = np.min((1, np.exp(-beta * (energy_prop - energy_prev))))
         random_number = np.random.random()
         if random_number <= p_acc:
@@ -219,9 +219,10 @@ class SystemInfo:
     def __init__(self, system):
         self._system = system
         self._box = self._system._ipar['box']
-        self._sigma_lj = self._system._ipar['sigma_lj']
-        self._epsilon_lj = self._system._ipar['epsilon_lj']
+        self._sigma_lj = np.asarray([self._system._ipar['sigma_lj']]*100)
+        self._epsilon_lj = np.asarray([self._system._ipar['epsilon_lj']]*100)
         self._cutoff_radius = self._sigma_lj * 2.5
+        self._epsilon_lj_eff = None
         self._sigma_eff = None
         self._particle_types = self._system._ipar['types']
         self._particle_charges = self._system._ipar['charges']
@@ -248,7 +249,15 @@ class SystemInfo:
 
     @property
     def sigma_eff(self):
+        if self._sigma_eff is None:
+            self._sigma_eff = (np.reshape(self.sigma_lj[None, :], -1) + np.reshape(self.sigma_lj, -1)[:, None])/2
         return self._sigma_eff
+
+    @property
+    def epsilon_lj_eff(self):
+        if self._epsilon_lj_eff is None:
+            self._epsilon_lj_eff = np.sqrt(np.reshape(self._epsilon_lj, -1)[None, :]**2 + np.reshape(self._epsilon_lj, -1)[:, None]**2)
+        return self._epsilon_lj_eff
 
     @property
     def sigma_lj(self):
@@ -331,6 +340,29 @@ class SystemState:
         q = (sigma/distance)**6
         return 4*epsilon*q*(q-1)
 
+    @staticmethod
+    def lj_matrix(sigma, epsilon, distance):
+        q = np.divide(sigma, distance)**6
+        return np.multiply(np.multiply(4*epsilon, q), q-1)
+
+    def lj_energy(self):
+        if not self._energy_lj:
+            sigma = self._system.info().sigma_eff
+            sigma[(np.diag_indices(100))] = 0
+            sigma = np.triu(sigma)
+            epsilon = self._system.info().epsilon_lj_eff
+            epsilon[(np.diag_indices(100))] = 0
+            epsilon = np.triu(epsilon)
+            print
+            # print(np.shape(epsilon[np.nonzero(epsilon > 0)]))
+            distance = self.wrap_distances(self.positions())
+            # print(np.shape(distance[np.nonzero(distance > 0)]))
+            self._energy_lj = np.sum(SystemState.lj_matrix(sigma[np.nonzero(sigma > 0)],
+                                                           epsilon[np.nonzero(epsilon > 0)],
+                                                           distance[np.nonzero(distance > 0)]))
+        return self._energy_lj
+
+
     def energy_lj(self):
         if not self._energy_lj:
             self._energy_lj = 0
@@ -374,9 +406,9 @@ if __name__ == '__main__':
     #                    positions=positions_start, ewald=False, reci_cutoff=5)
     # print(list(map(lambda x: SystemState(syst, x), positions_all)))
     # syst.extend_states(list(map(lambda x: SystemState(syst, x), positions_all)))
-    # for each in positions_all:
+    for each in positions_all:
         # syst2.update_state(nbp.SystemState(each, syst2))
-        # syst.update_state(SystemState(syst, each))
+        syst.update_state(SystemState(syst, each))
     # syst2.simulate(1000, 300)
     # analysis2 = Analyser(syst2)
     # energy = analysis2.get_energy(typ='lj')
@@ -397,14 +429,14 @@ if __name__ == '__main__':
     # # print(syst.state.energy_lj)
     analysis = Analyser(syst)
     # energy = analysis.get_energy(typ='lj')
-    # analysis.plot_energy(typ='lj', hline={"yval": 0, "color": "r", "style": "--"})
+    analysis.plot_energy(typ='lj', hline={"yval": 0, "color": "r", "style": "--"})
     # analysis.plot_distribution(typ='energy')
-    rdf = analysis.plot_distribution(typ='rdf', bins=500)
+    # rdf = analysis.plot_distribution(typ='rdf', bins=500)
     # lj_gro = np.load(r"D:\Uni\Master\CompSci\lj_md\lj_300.npy")
     #print(np.equal(energy, lj_gro))
     # plt.figure()
-    plt.plot(rdf[:,0], rdf[:,1])
+    # plt.plot(rdf[:,0], rdf[:,1])
     # plt.plot(energy)
-    plt.show()
+    # plt.show()
     print("finished")
     # plt.close()

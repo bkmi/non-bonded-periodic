@@ -98,11 +98,13 @@ class Simulator:
         Returns:
             proposal_state (obj: nbp.SystemState)
         """
-        cov = np.max(self._system.info().sigma_eff())/15
+        cov = np.max(self._system.info().sigma_eff())/50
+        print(cov)
         num_particles = len(self._system.state().positions())
         indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
         proposal_state, proposal_energy = self._metropolis(indices_to_move, cov)
         starting_energy = self._system.state().energy()
+        print("proposal energy: {} starting eneregy: {}".format(proposal_energy, starting_energy))
         if self._check(temperature, proposal_energy, starting_energy):
             self._accepted_number += 1
             return proposal_state

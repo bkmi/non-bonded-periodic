@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import nbp
 import numpy as np
 import time
+
 
 
 
@@ -33,21 +35,17 @@ class Analyser:
 
     """
 
-    def __init__(self, system=None, positions=None):
+    def __init__(self, system=None):
         """Initialization
-        Kwargs:
-            system (obj: <nbp.System>): An instance of the <nbp.System> class
 
-            states (obj: <list> of obj: <nbp.SystemState>): A list of instances of <nbp.SystemState> class
+        :param system: (obj: nbp.System)
+            An nbp.System class instance
+
+        :param parser: (obj: nbp.Parser)
+            An nbp.parser class instance
         """
-        if not isinstance(system, nbp.System):
-            pass
-
-        if system is None and positions is None:
-            raise ValueError("Please Provide either an nbp.System class instance or a positions array for initialization")
-
-        if positions:
-
+        # if not isinstance(system, nbp.System):
+        #     raise TypeError("system argument has to be an instance of nbp.System class; you provided {}".format(type(system)))
 
 
         import matplotlib.pyplot as plt
@@ -229,7 +227,7 @@ class Analyser:
 
 
     def _get_rdf_2(self, bins=100):
-        box_length = self._system.info().box[0]
+        box_length = self._system.info().box_dim()[0]
         box_lenh = box_length / 2
         dr = box_lenh/bins
         histogram = [0]*(bins+1)
