@@ -412,7 +412,7 @@ class SystemState:
         :param system:  System
                         the system containing self.
         :param verbose: Boolean
-                        I HAVE NO IDEA.
+                        Indicates if output of neighbours() should be printed.
         """
         self._verbose = verbose
         self._system = system
