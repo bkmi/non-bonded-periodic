@@ -24,14 +24,40 @@ Additional parts are to support, e.g. the misc and the neighbours class
 
 
 ## Operating instructions
+
+These are the steps to follow to simulate a system:
+
 ```python
 import nbp
 
 sys = nbp.System(characteristic_length, sigma, epsilon_lj, particle_charges, positions, 
                  lj=True, ewald=True, use_neighbours=True)
 optimized_sys = sys.optimize()
-simulated_sys = optimized_sys.simualte(states, temp)
+simulated_sys = optimized_sys.simulate(states, temp)
 ```
+
+#### Loading the parameters from a file
+
+A file can be used to store the starting parameters of the system. It must contain a dictionary with keys:
+
+> ['parameters', 'positions', 'types', 'box', 'readme']
+
+To load the parameters into the System, the Parser contained into nbp must be used, for example:
+
+```python
+import nbp.parser
+
+data = Parser("file.npz").parse()
+
+characteristic_length = data['ch-length']
+sigma = data['sigma'][:, None]
+epsilon = data['epsilon'][:, None]
+charge = data['charge][:, None]
+positions = data['pos']
+```
+
+Then the procedure follows as stated before.
+If no file is passed, the file sodium-chloride-example.npz, contained in this repo, is used.
 
 ---
 
