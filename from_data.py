@@ -16,7 +16,7 @@ for key, val in data.items():
 # units epsilon0 = 55.3e-4 eV/A
 # 1 kJ/mol = 1.0364x10-2 eV
 
-if 0:
+if 1:
     # for simulating
     system = nbp.System(data['ch_length'],
                         data['sigma'][:, None],
@@ -26,7 +26,7 @@ if 0:
                         lj=True, ewald=True, use_neighbours=False,
                         epsilon0=55.3e-4)
     op_sys = system.optimize()
-    simu_sys = op_sys.simulate(10, 2000)
+    simu_sys = op_sys.simulate(100, 2000)
 else:
     # for analysis
     traj = np.load('data/trajectory_300.npy')

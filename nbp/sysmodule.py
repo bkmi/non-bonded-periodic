@@ -256,6 +256,9 @@ class SystemInfo:
                 the system containing self."""
         return self._system
 
+    def parameters(self):
+        return self._Parameters
+
     def char_length(self):
         """Return the characteristic length of the box.
 
@@ -567,7 +570,7 @@ class SystemState:
             epsilon0 = self.system().info().epsilon0()
             charges = self.system().info().particle_charges()
             sigma = self.system().info().sigma_eff()
-            sigma_one = nbp.Parameters.gauss_sigma()
+            sigma_one = self.system().info().parameters().gauss_sigma()
             pos = self.positions()
             cutoff = self.system().info().cutoff()
             k_vectors = self.system().info().k_vectors()
