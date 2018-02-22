@@ -570,7 +570,7 @@ class SystemState:
             epsilon0 = self.system().info().epsilon0()
             charges = self.system().info().particle_charges()
             sigma = self.system().info().sigma_eff()
-            sigma_one = self.system().info().sigma()
+            sigma_one = self.system().info().worse_sigma()
             pos = self.positions()
             cutoff = self.system().info().cutoff()
             k_vectors = self.system().info().k_vectors()
@@ -613,13 +613,12 @@ class SystemState:
                     r = pos[i]
                     structure_factor += 2 * q * np.cos(np.dot(k, r))
                     # its *2 because we calc only half the k vectors (symmetry)
-                longsum += np.linalg.norm(structure_factor) ** 2 * np.exp((-np.mean(sigma_one) ** 2 * k_length ** 2) / 2) / k_length ** 2
-                # ToDo What Sigma here?
+                longsum += np.linalg.norm(structure_factor) ** 2 * np.exp((-sigma_one ** 2 * k_length ** 2) / 2) / k_length ** 2
 
             # making sum for self energy
             selfsum = 0
             for i in range(len(charges)):
-                whyArray = sigma_one[i] * charges[i]**2
+                whyArray = sigma_one * charges[i]**2
                 selfsum += whyArray[0]
 
             energy_short = 1 / (8 * np.pi * epsilon0) * shortsum
