@@ -19,7 +19,7 @@ system = nbp.System(data['ch_length'],
                     data['epsilon'][:,None] * 1.0364e-2,
                     data['charge'][:,None],
                     data['pos'],
-                    reci_cutoff=10, lj=True, ewald=True, use_neighbours=False,
+                    lj=True, ewald=True, use_neighbours=False,
                     epsilon0=55.3e-4)
 op_sys = system.optimize()
 simu_sys = op_sys.simulate(1000, 200)
