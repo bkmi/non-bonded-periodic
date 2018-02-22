@@ -23,10 +23,11 @@ if 1:
                         data['epsilon'][:, None] * 1.0364e-2,
                         data['charge'][:, None],
                         data['pos'],
-                        lj=True, ewald=True, use_neighbours=False,
+                        lj=True, ewald=False, use_neighbours=False,
                         epsilon0=55.3e-4)
-    op_sys = system.optimize()
-    simu_sys = op_sys.simulate(100, 2000)
+    op_sys = system.optimize(max_steps=500, cov=system.info().cutoff()/2**8, num_particles=0.05)
+    print('\n\n\noptimized\n\n\n')
+    simu_sys = op_sys.simulate(100, 200)
 else:
     # for analysis
     traj = np.load('data/trajectory_300.npy')

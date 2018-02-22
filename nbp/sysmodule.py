@@ -722,15 +722,21 @@ class SystemState:
                 self._potential += self.potential_ewald()
         return self._potential
 
-    def energy(self):
+    def energy(self, verbose=False):
         lj, ewald = self._check_lj_ewald(lj=self.system().info().lj(),
                                          ewald=self.system().info().ewald())
 
         if self._energy is None:
             self._energy = 0
             if lj:
-                self._energy += self.energy_lj()
+                elj = self.energy_lj()
+                if verbose:
+                    print(elj)
+                self._energy += elj
             if ewald:
+                eewald = self.energy_ewald()
+                if verbose:
+                    print(eewald)
                 self._energy += self.energy_ewald()
         return self._energy
 

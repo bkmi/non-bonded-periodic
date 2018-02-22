@@ -9,18 +9,18 @@ class MCMC:
     def __init__(self, system):
         self._system = system
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.50,
+    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=25, num_particles=0.05,
                  drop_intermediate_states=True):
         """Optimize from the last system state."""
         optimized_system = self._system
         optimizer = Optimizer(optimized_system)
         energies = []
         if cov is None:
-            cov = optimized_system.info().cutoff()/24
+            cov = optimized_system.info().cutoff()/2**7
         for i in range(max_steps):
             new_state, new_energy = optimizer.act(cov, num_particles=num_particles)
             optimized_system.update_state(new_state)
-            energies.append(new_energy)
+            energies.append(optimized_system.state().energy())
             if len(energies) > no_progress_break and np.all(
                     np.less(np.abs(np.asarray(energies)[-no_progress_break:] - new_energy), d_energy_tol)):
                 break
@@ -97,9 +97,9 @@ class Simulator:
         Returns:
             proposal_state (obj: nbp.SystemState)
         """
-        cov = np.max(self._system.info().sigma_eff())/30
+        cov = self._system.info().cutoff()/2**7
         num_particles = len(self._system.state().positions())
-        indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
+        indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.05*num_particles))))))
         proposal_state, proposal_energy = self._metropolis(indices_to_move, cov)
         starting_energy = self._system.state().energy()
         if self._check(temperature, proposal_energy, starting_energy):
