@@ -7,7 +7,7 @@ class Parameters:
     through statistical processes.
     """
 
-    def __init__(self, p=5.0):
+    def __init__(self, cutoff, p=5.0):
         """
         Initialize the sigma needed for the gaussian distribution
         in the long-range energy calculations in the ewald sum.
@@ -15,7 +15,7 @@ class Parameters:
         :param p: float (default: 5.0)
                   the higher p is the higher is the accuracy
         """
-        self._r_cutoff = nbp.SystemInfo.cutoff()
+        self._r_cutoff = cutoff
         self._gauss_sigma = self._get_sigma(p)
         self._k_cutoff = self._get_k_cutoff(p)
         pass

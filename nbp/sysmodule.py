@@ -65,7 +65,7 @@ class System:
         if not (positions.shape[0] == epsilon_lj.shape[0]):
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
-        self._systemInfo = SystemInfo(self, characteristic_length, sigma, epsilon_lj, particle_charges,
+        self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
                                       lj=lj, ewald=ewald, use_neighbours=use_neighbours,
                                       epsilon0=epsilon0)
         self._systemStates = [SystemState(positions, self)]
@@ -222,7 +222,8 @@ class SystemInfo:
         self._system = system
 
         # k vectors
-        self._reci_cutoff = nbp.Parameters.k_cutoff()
+        self._Parameters = nbp.Parameters(self.cutoff())
+        self._reci_cutoff = int(np.ceil(self._Parameters.k_cutoff()))
         self._k_vectors = []
         for x in range(self._reci_cutoff):
             for y in range(-self._reci_cutoff, self._reci_cutoff, 1):
