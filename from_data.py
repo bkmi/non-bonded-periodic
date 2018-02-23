@@ -25,9 +25,9 @@ if 1:
                         data['pos'],
                         lj=True, ewald=False, use_neighbours=False,
                         epsilon0=55.3e-4)
-    op_sys = system.optimize(max_steps=500, cov=system.info().cutoff()/2**8, num_particles=0.05)
+    op_sys = system.optimize(max_steps=500, cov=system.info().cutoff()/2**7, num_particles=0.05)
     print('\n\n\noptimized\n\n\n')
-    simu_sys = op_sys.simulate(100, 200)
+    op_sys.simulate(100, 300)
 else:
     # for analysis
     traj = np.load('data/trajectory_300.npy')
@@ -44,10 +44,14 @@ else:
         system.update_state(nbp.SystemState(i, system))
 
 energies = []
-for i in range(0, len(system.states())):
-    energies.append(system.states()[i].energy())
+for i in range(0, len(op_sys.states())):
+    energies.append(op_sys.states()[i].energy())
 
-plt.plot(np.asarray(energies))
+plt.plot(energies)
 plt.show()
+
+# import pickle
+#
+# pickle.dump([simu_sys, energies], '')
 
 print('ok')

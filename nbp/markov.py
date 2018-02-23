@@ -30,11 +30,14 @@ class MCMC:
 
         return optimized_system
 
-    def simulate(self, steps, temperature):
+    def simulate(self, steps, temperature, verbose=False):
         """Simulate from the last system state."""
         simulator = Simulator(self._system)
         for i in range(steps):
             self._system.update_state(simulator.act(temperature))
+
+        if verbose:
+            print(simulator.accepted_number)
         return self._system.state()
 
 
