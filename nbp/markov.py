@@ -127,7 +127,7 @@ class Simulator:
 
             :return bool: Returns True if the state is accepted and False if rejected
         """
-        _k_b = 8.6173303e-5     # Boltzmann constant in Gaussian units [eV/K]
+        _k_b = 0.008314     # Boltzmann constant in Gaussian units [eV/K]
         beta = 1/(_k_b*temperature)     # reciprocal of thermal energy in [eV]
         p_acc = np.min((0, -beta * (energy_prop - energy_prev)))
         print('accept:', p_acc)
