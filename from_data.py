@@ -18,8 +18,8 @@ for key, val in data.items():
 data['ch_length']
 if 1:
     # for simulating
-    system = nbp.System(22.56 * 1e-10,
-                        data['sigma'][:, None] * 1e-10,
+    system = nbp.System(22.56,
+                        data['sigma'][:, None],
                         data['epsilon'][:, None] * 1.0364e-2,
                         data['charge'][:, None],
                         data['pos'],
