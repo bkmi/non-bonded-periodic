@@ -5,44 +5,14 @@ import numpy as np
 import time
 
 
-
-
-# def show_frame(system, frame=None):
-#     """a function to visualize the particles in 3d"""
-#
-#     states = system.states()
-#     if frame:
-#         positions = states[frame].positions()    # select a particular frame
-#     else:
-#         positions = states[-1].positions()     # by default show last frame
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, projection='3d')
-#     X, Y, Z = positions[:, 0], positions[:, 1], positions[:, 2]
-#     ax.scatter(X, Y, Z)
-#     plt.show()
-
-
 class Analyser:
-    """A class for the visual analysis of the nbp.System states
-    Attr:
-        _system (obj: <nbp.System>, private): An instance of the <nbp.System> class
-
-        _states (obj: <list> of obj: <nbp.SystemState>, private): A list of instances of <nbp.SystemState> class
-
-        _rdf () TODO: add description
-
-        _energy (obj: <dict> of <list> or <array>): A dictionary containing energies of the system
-
-    """
+    """A class for the visual analysis of the nbp.System states"""
 
     def __init__(self, system=None):
         """Initialization
 
         :param system: (obj: nbp.System)
             An nbp.System class instance
-
-        :param parser: (obj: nbp.Parser)
-            An nbp.parser class instance
         """
         # if not isinstance(system, nbp.System):
         #     raise TypeError("system argument has to be an instance of nbp.System class; you provided {}".format(type(system)))
@@ -59,24 +29,47 @@ class Analyser:
 
     def plot_distribution(self, typ=None, show=True, save=False, filename=None, fmt='png', **kwargs):
         """Distribution plotting method:
-        Kwargs:
-            typ (str, default=None): A string specifying the type of the distribution to be plotted
 
-            show (bool, default=True): Boolean specifying if the plot is to be shown.
+        :param typ: (str)
+            A string specifying the type of distribution to be plotted
+            options:
+            <rdf> radial distribution function
+            <energy> energy distribution
+            <distances> distances distribution
 
-            save (bool, default=False): Boolean specifying if the generated plot is to be saved
+        :param show: (bool)
+            A boolean that switches whether the plot is to be displayed.
+            default: True.
 
-            filename (str, optional): A string specifying the filename while saving. If none provided
-            a timestamp will be used.
+        :param save: (bool)
+            A boolean that switches whether the plot is to be saved.
+            default: False.
 
-            fmt (str, default='png'): A string specifying the file format while saving
+        :param filename: (str)
+            A string specifying the user given name for saving the file.
+            If none provided a timestamp + energy type will be used as default.
+
+        :param fmt: (str)
+            A string specifying the format of the saved file.
+            default: png
         """
         if not typ:
             raise ValueError("Please specify a type of distribution to be plotted")
         if typ == 'rdf':
             if not self._rdf:
                 self._rdf = self._get_rdf()
-                return self._rdf
+                fig, axes = self._create_figure()
+                axes.set_xlabel("Radius [nm]")
+                axes.set_title("Radial Distribution Function")
+                axes.plot(self._rdf[:,0], self.rdf[:,1])
+                if show:
+                    plt.show()
+                if save:
+                    filename = filename or "{}_{}.{}".format(
+                        typ, time.strftime("%Y%M%d"), fmt
+                    )
+                    fig.savefig(filename)
+
 
         if typ == 'energy':
             energy, edges = self._energy_distribution()
@@ -85,48 +78,61 @@ class Analyser:
         if typ == 'distances':
             return self._distances_distribution()
 
-    def plot_energy(self, typ='total', show=True, save=False, filename=None, hline=None,  fmt='png', **kwargs):
+    def plot_energy(self, typ='total', show=True, save=False, filename=None, fmt='png', **kwargs):
         """Energy Plotting method:
-        Kwargs:
-            typ (str, default='total'): A string specifying the type of the energy to be plotted.
 
-            show (bool, default=True): Boolean specifying if the plot is to be shown.
+        :param typ: (str)
+            A string specifying the type of energy to be plotted
+            options:
+            <total> total energy due to particle interaction
+            <lj> energy due to Van der Waals interaction
+            <coulomb> energy due to coulomb interaction
+            default: <total>
 
-            save (bool, default=False): Boolean specifying if the generated plot is to be saved.
+        :param show: (bool)
+            A boolean that switches whether the plot is to be displayed.
+            default: True.
 
-            filename (str, optional): A string specifying the filename while saving. If none provided
-            a timestamp will be used.
+        :param save: (bool)
+            A boolean that switches whether the plot is to be saved.
+            default: False.
 
-            fmt (str, default="png"): A string specifying the file format while saving.
+        :param filename: (str)
+            A string specifying the user given name for saving the file.
+            If none provided a timestamp + energy type will be used as default.
+
+        :param fmt: (str)
+            A string specifying the format of the saved file.
+            default: png
         """
-        if typ == 'all':
-            for each in ['total', 'lj', 'coulomb']:
-                energy, average = self.get_energy(typ)
-                figure, axes = self._setup_figure(typ, hline)
-                filename = filename or "energy_{}_{}.{}".format(typ, time.strftime("%Y%M%d"), fmt)
-                axes.plot(energy)
-                axes.axhline(average)
-
-                if save:
-                    figure.savefig(filename)
-
-                if show:
-                    plt.show()
+        if typ == "total":
+            title_string = 'Total'
+        elif typ == "lj":
+            title_string = 'Lennard-Jones'
+        elif typ == "coulomb":
+            title_string = 'Coulomb'
         else:
-            energy, average = self.get_energy(typ)
-            figure, axes = self._setup_figure(typ, hline)
-            filename = filename or "energy_{}_{}.{}".format(typ, time.strftime("%Y%M%d"), fmt)
-            axes.plot(energy)
-            axes.axhline(y=average, color='green')
-            axes.text(1, 5, "Average: {:.3f} kJ/mol".format(average), fontsize=15)
-            if save:
-                figure.savefig(filename)
-
-            if show:
-                plt.show()
+            title_string = input("Please specify the energy type")
+        energy, average = self.get_energy(typ)
+        figure, axes = self._create_figure(axes3d=False)
+        filename = filename or "energy_{}_{}.{}".format(typ, time.strftime("%Y%M%d"), fmt)
+        axes.plot(energy)
+        axes.set_title('Energy {}'.format(title_string))
+        axes.set_ylabel('E [kJ/mol]')
+        axes.set_xlabel('State #')
+        axes.axhline(y=average, color='green')
+        axes.text(1, 5, "Average: {:.3f} kJ/mol".format(average), fontsize=15)
+        if save:
+            figure.savefig(filename)
+        if show:
+            plt.show()
 
     def play_frames(self, dt=None):
-        """a function to play generated frames in 3d"""
+        """A method to play generated frames in 3d
+
+        :param dt: (float)
+            A float specifying pause time between played frames
+        """
         pausetime = dt or 0.01
         fig, ax = self._create_figure(subplots=1, split_axes=1, axes3d=True)
         states = self._states
@@ -144,19 +150,19 @@ class Analyser:
     def get_energy(self, typ):
         """A method for getting the requested type of energy
 
-            :param typ: (string)
-                a string specifying the type of energy to fetch
-                options:
-                    <total>     Total energy
-                    <coulomb>   Coulomb interaction energy
-                    <lj>        Wan der Waals interraction energy
+        :param typ: (string)
+            A string specifying the type of energy to fetch
+            options:
+                <total>     Total energy
+                <coulomb>   Coulomb interaction energy
+                <lj>        Wan der Waals interraction energy
 
-            :returns (energy_list, average): (list of float, float)
-                a list containing energies for each state
-                a float for the average energy
+        :returns (energy_list, average): (list of float, float)
+            A list containing energies for each state
+            A float for the average energy
         """
         if typ == 'total' or 1:
-            energy_list = list(map(lambda x: x.energy_lj(), self._states))
+            energy_list = list(map(lambda x: x.energy(), self._states))
             average = np.mean(energy_list)
             return energy_list, average
         elif typ == 'lj' or 2:
@@ -168,81 +174,25 @@ class Analyser:
             average = np.mean(energy_list)
             return energy_list, average
 
-    def _setup_figure(self, typ, hline=None, **kwargs):
-        """Private method that takes care of the figure creation,
-        setting the title, axes, and labels.
-        Args:
-            typ (str): A string representing the type of energy to be plotted
-
-        Kwargs:
-            hline (obj: <dict> of obj: <int>, <str>; optional):
-            A dictionary specifying the parameters for a horizontal line
-
-        Returns:
-            figure (obj: <matplotlib.Figure>): An instance of <matplotlib.Figure> class
-
-            ax (obj: <matplotlib.Axes>): An instance of <matplotlib.Axes> class
-        """
-        if typ == "total":
-            title_string = 'Total'
-        elif typ == "lj":
-            title_string = 'Lennard-Jones'
-        elif typ == "coulomb":
-            title_string = 'Coulomb'
-        else:
-            title_string = input("Please specify the energy type")
-        fig, ax = self._create_figure()
-        ax.set_title('Energy {}'.format(title_string))
-        ax.set_ylabel('E [kJ/mol]')
-        ax.set_xlabel('State #')
-        if hline:
-            if "color" and "style" in hline.keys():
-                try:
-                    y = hline["yval"]
-                    col = hline["color"]
-                    style = hline["style"]
-                except IndexError:
-                    y = hline["yval"]
-            ax.axhline(y=y, color=col, ls=style)
-        return fig, ax
-
-    def _create_figure(self, subplots=1, split_axes=1, axes3d=False, **kwargs):
+    def _create_figure(self, axes3d=False, **kwargs):
         """A method for creating a matplotlib figure and axes (or subplots) for plotting
-        Kwargs:
-            subplots (int): An integer specifying the number of subplots to use in a figure
 
-            split_axes (int; default=1): An integer specifying the method for splitting
-            the figure into subplots. <1> Denotes horizontal split, <2> - Vertical.
+        :param subplots: (int)
+            Number of subplots
+            default: 1
 
-        Returns:
-            fig (obj: <matplotlib.Figure>): An instance of <matplotlib.Figure> class
+        :param axes3d: (bool)
+            A boolean switching whether to plot in 3 dimensions
+            default: False
 
-            ax (obj: <matplotlib.Axes>): An instance of <matplotlib.Axes> class
+        :returns (fig, ax): (obj, obj)
+            A matplotlib.Figue and a matplotlib.Axes instance
         """
         fig = plt.figure()
         ax = fig.add_subplot(111)
         if axes3d:
             ax = fig.add_subplot(111, projection='3d')
         return fig, ax
-
-
-    def _get_rdf_2(self, bins=100):
-        box_length = self._system.info().box_dim()[0]
-        box_lenh = box_length / 2
-        dr = box_lenh/bins
-        histogram = [0]*(bins+1)
-        states_count = len(self._system.states())
-        particle_num = self._system.info().num_particles()
-        rdf = np.zeros(shape=(bins, 2))
-        number_density = particle_num / box_length**3
-        norm = (4 / 3) * np.pi * number_density * states_count * dr
-        for each in self._system.states():
-            distances = each.wrap_distances(each.wrap_positions(each._positions))
-            distances = distances[np.nonzero(np.triu(distances) > 0)]
-            for each in distances:
-                bin = int(np.ceil(each / dr))
-                if (bin <= bins):
-                    histogram[bin] += 1
 
     def _get_rdf(self, bins=300):
         boxlen = self._system.info().box[0]

@@ -30,11 +30,14 @@ class MCMC:
 
         return optimized_system
 
-    def simulate(self, steps, temperature):
+    def simulate(self, steps, temperature, verbose=False):
         """Simulate from the last system state."""
         simulator = Simulator(self._system)
         for i in range(steps):
             self._system.update_state(simulator.act(temperature))
+
+        if verbose:
+            print(simulator.accepted_number)
         return self._system.state()
 
 
@@ -46,7 +49,6 @@ class Optimizer:
 
     def _propose(self, cov, num_particles=None):
         """Propose the next state, moves a num_particles randomly with a 3d gaussian.
-
         returns proposal state, proposal_energy"""
         positions = self._system.state().positions()
         if isinstance(num_particles, float) and num_particles <= 1:
@@ -97,13 +99,13 @@ class Simulator:
         Returns:
             proposal_state (obj: nbp.SystemState)
         """
-        cov = np.max(self._system.info().sigma_eff())/50
+        cov = self._system.info().sigma()[0]/500
         print(cov)
         num_particles = len(self._system.state().positions())
-        indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.25*num_particles))))))
+        indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.05*num_particles))))))
         proposal_state, proposal_energy = self._metropolis(indices_to_move, cov)
         starting_energy = self._system.state().energy()
-        print("proposal energy: {} starting eneregy: {}".format(proposal_energy, starting_energy))
+        print("prop {} start {}".format(proposal_energy, starting_energy))
         if self._check(temperature, proposal_energy, starting_energy):
             self._accepted_number += 1
             return proposal_state
@@ -115,18 +117,18 @@ class Simulator:
         """A method for checking for the acceptance of the proposed state.
 
             :param temperature: (float)
-                                The temperature of the heat bath
+                The temperature of the heat bath
 
             :param energy_prop: (float)
-                                The energy of the proposed state
+                The energy of the proposed state
 
             :param energy_prev: (float)
-                                The energy of the starting state
+                The energy of the starting state
 
             :return bool: Returns True if the state is accepted and False if rejected
         """
-        _k_b = 8.6173303e-5     # Boltzmann constant in Gaussian units [eV/K]
-        beta = 1/(_k_b*temperature)     # reciprocal of thermal energy in [eV]
+        _k_b = 1     # Boltzmann constant in Gaussian units [eV/K]
+        beta = 1.380e-26#1/(_k_b*temperature)     # reciprocal of thermal energy in [eV]
         p_acc = np.min((1, np.exp(-beta * (energy_prop - energy_prev))))
         if np.random.random() <= p_acc:
             return True
@@ -144,8 +146,7 @@ class Simulator:
                 An nbp.State instance as well as its energy
         """
         new_positions = np.copy(self._system.state().positions())
-        new_positions[indices] += np.array(
-            [sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs().tolist() for _ in range(len(indices))])
+        new_positions[indices] += np.array(sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs(len(indices)).tolist())
         proposal_state = nbp.SystemState(new_positions, self._system)
         proposal_energy = proposal_state.energy()
         return proposal_state, proposal_energy

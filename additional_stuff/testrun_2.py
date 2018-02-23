@@ -337,8 +337,8 @@ class SystemState:
     @staticmethod
     def lennard_jones(sigma, epsilon, distance):
         # print(distance)
-        q = (sigma/distance)**6
-        return 4*epsilon*q*(q-1)
+        q = (sigma / distance) ** 6
+        return 4 * epsilon * q * (q - 1)
 
     @staticmethod
     def lj_matrix(sigma, epsilon, distance):
