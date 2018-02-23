@@ -37,7 +37,7 @@ class Parser:
         pass
 
     def parse(self):
-        """Parsee the content of the file into variables readable by the software.
+        """Parses the content of the file into variables readable by the software.
 
         Unless stated, all the attributes in the form of an array or a matrix follow the following convention:
         information[i] contains information about the particle i
