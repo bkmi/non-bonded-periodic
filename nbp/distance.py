@@ -3,17 +3,17 @@ import nbp
 
 
 class Distance:
-    def __init__(self, system):
+    def __init__(self, system_state):
         self._distance_vectors = None
         self._distances_unwrapped = None
         self._distances_wrapped = None
-        self._system = system
+        self._system_state = system_state
 
-    def system(self):
-        return self._system
+    def system_state(self):
+        return self._system_state
 
     def positions(self):
-        return self.system().state().positions()
+        return self.system_state().positions()
 
     def distance_vectors_unwrapped(self):
         if self._distance_vectors is None:
@@ -24,8 +24,9 @@ class Distance:
     def distance_vectors_wrapped(self):
         if self._distance_vectors is None:
             unwrapped = self.distance_vectors_unwrapped()
-            wrapped = np.apply_along_axis(lambda x: nbp.periodic_wrap_corner(x, self._system.info().char_length()),
-                                          -1, unwrapped)
+            wrapped = np.apply_along_axis(
+                lambda x: nbp.periodic_wrap_corner(x, self.system_state().system().info().char_length()),
+                -1, unwrapped)
             self._distance_vectors = wrapped
         return self._distance_vectors
 

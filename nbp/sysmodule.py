@@ -30,7 +30,7 @@ class System:
     """
 
     def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, positions,
-                 reci_cutoff=5, lj=True, ewald=True, use_neighbours=False, epsilon0=1):
+                 lj=True, ewald=True, use_neighbours=False, epsilon0=1):
         """The initialize function.
 
         :param  characteristic_length:  float
@@ -66,7 +66,7 @@ class System:
             raise ValueError('Shape[0]s do not agree: positions and epsilon_lj.')
 
         self._systemInfo = SystemInfo(characteristic_length, sigma, epsilon_lj, particle_charges, self,
-                                      reci_cutoff=reci_cutoff, lj=lj, ewald=ewald, use_neighbours=use_neighbours,
+                                      lj=lj, ewald=ewald, use_neighbours=use_neighbours,
                                       epsilon0=epsilon0)
         self._systemStates = [SystemState(positions, self)]
         self._MCMC = nbp.MCMC(self)
@@ -186,7 +186,7 @@ class SystemInfo:
     """
 
     def __init__(self, characteristic_length, sigma, epsilon_lj, particle_charges, system,
-                 reci_cutoff=None, lj=None, ewald=None, use_neighbours=None, epsilon0=None):
+                 lj=None, ewald=None, use_neighbours=None, epsilon0=None):
         """Initialization function.
 
         :param characteristic_length:  float
@@ -199,18 +199,18 @@ class SystemInfo:
                                     the charges of the particle.
         :param  system: System
                         the system containing this systemState
-        :param  _lj:    Boolean
+        :param  lj:    Boolean
                        if True, LJ potential is used in the energies calculations.
-        :param  _ewald: Boolean
+        :param  ewald: Boolean
                         if True, Ewald's summation is used in the energies calculations.
-        :param  _use_neighbours:    Boolean
-                                    if True, the neighbourlist is implemented.
+        :param  use_neighbours:    Boolean
+                                    if True, the neighbour list is implemented.
 
         """
         self._sigma = np.asarray(sigma)
         self._worse_sigma = np.max(sigma)
         self._sigma_eff = (np.reshape(self._sigma[None, :], -1) + np.reshape(self._sigma, -1)[:, None])/2
-        self._cutoff_radius = self._worse_sigma * 3  # 2.5 is standard, 3 is in neighbour list
+        self._cutoff_radius = self._worse_sigma * 2.5
 
         self._epsilon_lj = np.asarray(epsilon_lj)
         self._epsilon_lj_eff = np.sqrt(np.reshape(self._epsilon_lj, -1)[None, :]**2 +
@@ -222,11 +222,12 @@ class SystemInfo:
         self._system = system
 
         # k vectors
-        self._reci_cutoff = reci_cutoff
+        self._Parameters = nbp.Parameters(self.cutoff())
+        self._reci_cutoff = int(np.ceil(self._Parameters.k_cutoff()))
         self._k_vectors = []
-        for x in range(reci_cutoff):
-            for y in range(-reci_cutoff, reci_cutoff, 1):
-                for z in range(-reci_cutoff, reci_cutoff, 1):
+        for x in range(self._reci_cutoff):
+            for y in range(-self._reci_cutoff, self._reci_cutoff, 1):
+                for z in range(-self._reci_cutoff, self._reci_cutoff, 1):
                     test = x + y + z
                     if test != 0:
                         k = [x, y, z]
@@ -254,6 +255,9 @@ class SystemInfo:
         :return System
                 the system containing self."""
         return self._system
+
+    def parameters(self):
+        return self._Parameters
 
     def char_length(self):
         """Return the characteristic length of the box.
@@ -364,9 +368,6 @@ class SystemInfo:
                 the number of particles."""
         return self.particle_charges().shape[0]
 
-    def reci_cutoff(self):
-        return self._reci_cutoff
-
 
 class SystemState:
     """Contains all the dynamic information about the system.
@@ -390,17 +391,17 @@ class SystemState:
                         the LJ potential between all the particles.
         _energy_lj: float
                     the energy calculated using Lennard Jones.
-        _forces_lj: NOIDEA
+        _forces_lj: ndarray
                     the forces calculated using Lennard Jones.
-        _potential_ewald:   NOIDEA
+        _potential_ewald:   ndarray
                             the potential calculated using Ewald's summation.
-        _forces_ewald:  NOIDEA
+        _forces_ewald:  ndarray
                         the forces calculated using Lennard Jones.
         _potential: float CREDO
                     the total potential.
         _energy:    float
                     the total system's energy.
-        _forces:    NOIDEA
+        _forces:    ndarray
                     the forces in the whole system.
     """
 
@@ -463,7 +464,7 @@ class SystemState:
 
         :return: instance of class Distance"""
         if self._distance is None:
-            self._distance = nbp.Distance(self.system())
+            self._distance = nbp.Distance(self)
         return self._distance
 
     @staticmethod
@@ -518,7 +519,6 @@ class SystemState:
                     self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
-                self._energy_lj = np.sum(np.triu(self._potential_lj))
         return self._potential_lj
 
     def energy_lj(self):
@@ -536,7 +536,7 @@ class SystemState:
     def forces_lj(self):
         """Calculates the forces acting on every particle.
 
-        :return NOIDEA
+        :return ndarray
                 the forces acting on every particle."""
         if self._forces_lj is None:
             if self.system().info().use_neighbours():
@@ -570,7 +570,7 @@ class SystemState:
             epsilon0 = self.system().info().epsilon0()
             charges = self.system().info().particle_charges()
             sigma = self.system().info().sigma_eff()
-            sigma_one = self.system().info().worse_sigma()
+            sigma_one = self.system().info().parameters().gauss_sigma()
             pos = self.positions()
             cutoff = self.system().info().cutoff()
             k_vectors = self.system().info().k_vectors()
@@ -722,15 +722,21 @@ class SystemState:
                 self._potential += self.potential_ewald()
         return self._potential
 
-    def energy(self):
+    def energy(self, verbose=False):
         lj, ewald = self._check_lj_ewald(lj=self.system().info().lj(),
                                          ewald=self.system().info().ewald())
 
         if self._energy is None:
             self._energy = 0
             if lj:
-                self._energy += self.energy_lj()
+                elj = self.energy_lj()
+                if verbose:
+                    print(elj)
+                self._energy += elj
             if ewald:
+                eewald = self.energy_ewald()
+                if verbose:
+                    print(eewald)
                 self._energy += self.energy_ewald()
         return self._energy
 

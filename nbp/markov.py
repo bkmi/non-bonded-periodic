@@ -9,18 +9,18 @@ class MCMC:
     def __init__(self, system):
         self._system = system
 
-    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=250, num_particles=0.50,
+    def optimize(self, max_steps=500, cov=None, d_energy_tol=1e-6, no_progress_break=25, num_particles=0.05,
                  drop_intermediate_states=True):
         """Optimize from the last system state."""
         optimized_system = self._system
         optimizer = Optimizer(optimized_system)
         energies = []
         if cov is None:
-            cov = optimized_system.info().cutoff()/24
+            cov = optimized_system.info().cutoff()/2**7
         for i in range(max_steps):
             new_state, new_energy = optimizer.act(cov, num_particles=num_particles)
             optimized_system.update_state(new_state)
-            energies.append(new_energy)
+            energies.append(optimized_system.state().energy())
             if len(energies) > no_progress_break and np.all(
                     np.less(np.abs(np.asarray(energies)[-no_progress_break:] - new_energy), d_energy_tol)):
                 break
@@ -83,7 +83,6 @@ class Simulator:
     """Simulation class"""
     def __init__(self, system):
         """
-
         :param system: (obj: nbp.System): An instance of the <nbp.System> class
         """
         self._system = system

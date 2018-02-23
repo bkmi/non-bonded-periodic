@@ -10,23 +10,29 @@ Enjoy :)
 
 Subpackages
 --------------
+distance
+
 markov
 
 neighbours
 
-distance
+parameters
+
+parser
 
 sysmodule
 
 unitconvert
 """
 
+from .distance import *
 from .markov import *
 from .neighbours import *
-from .sysmodule import *
-from .distance import *
-from .unitconvert import *
+from .parameters import *
 from .parser import *
+from .sysmodule import *
+from .unitconvert import *
+
 
 from functools import wraps
 from time import time
