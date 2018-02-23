@@ -519,6 +519,7 @@ class SystemState:
                     self._potential_lj[i] = self.calc_potential_lj(self.distance().distances_wrapped()[i],
                                                                    self.system().info().epsilon_lj_eff()[i],
                                                                    self.system().info().sigma_eff()[i])
+        print(self._potential_lj)
         return self._potential_lj
 
     def energy_lj(self):
@@ -722,7 +723,7 @@ class SystemState:
                 self._potential += self.potential_ewald()
         return self._potential
 
-    def energy(self, verbose=False):
+    def energy(self, verbose=True):
         lj, ewald = self._check_lj_ewald(lj=self.system().info().lj(),
                                          ewald=self.system().info().ewald())
 

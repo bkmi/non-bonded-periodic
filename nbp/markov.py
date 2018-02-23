@@ -100,11 +100,12 @@ class Simulator:
         Returns:
             proposal_state (obj: nbp.SystemState)
         """
-        cov = self._system.info().cutoff()/2**7
+        cov = self._system.info().cutoff()/2**5
         num_particles = len(self._system.state().positions())
-        indices_to_move = list(set(np.random.choice(np.arange(num_particles), size=int(np.ceil((0.05*num_particles))))))
-        proposal_state, proposal_energy = self._metropolis(indices_to_move, cov)
+        num_particles_to_move = int(np.ceil((0.05*num_particles)))
+        proposal_state, proposal_energy = self._metropolis(num_particles_to_move, cov)
         starting_energy = self._system.state().energy()
+        print(self._check(temperature, proposal_energy, starting_energy))
         if self._check(temperature, proposal_energy, starting_energy):
             self._accepted_number += 1
             return proposal_state
@@ -128,26 +129,30 @@ class Simulator:
         """
         _k_b = 8.6173303e-5     # Boltzmann constant in Gaussian units [eV/K]
         beta = 1/(_k_b*temperature)     # reciprocal of thermal energy in [eV]
-        p_acc = np.min((1, np.exp(-beta * (energy_prop - energy_prev))))
-        if np.random.random() <= p_acc:
+        p_acc = np.min((0, -beta * (energy_prop - energy_prev)))
+        print('accept:', p_acc)
+        if np.log(np.random.random()) <= p_acc:
             return True
         else:
             return False
 
-    def _metropolis(self, indices, cov):
+    def _metropolis(self, num_indices_to_move, cov):
         """Proposes the new states
 
-            :param indices: (list)
+            :param num_indices_to_move: (list)
                 A list containing the indices of moving particles
             :param cov: (float)
                 Covariance for defining the multivariate normal
             :return (proposal state, proposal energy):  (nbp.State, float)
                 An nbp.State instance as well as its energy
         """
-        new_positions = np.copy(self._system.state().positions())
-        new_positions[indices] += np.array(
-            [sp.stats.multivariate_normal(np.zeros(3), cov=cov).rvs().tolist() for _ in range(len(indices))])
-        proposal_state = nbp.SystemState(new_positions, self._system)
+        positions = np.copy(self._system.state().positions())
+        particles = np.random.choice(positions.shape[0], size=num_indices_to_move, replace=False)
+        proposal_positions = positions
+        proposal_positions[particles] = positions[particles] + \
+                                        sp.stats.multivariate_normal(np.zeros(3),
+                                                                     cov * np.eye(3)).rvs(len(particles))
+        proposal_state = nbp.SystemState(proposal_positions, self._system)
         proposal_energy = proposal_state.energy()
         return proposal_state, proposal_energy
 
